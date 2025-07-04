@@ -1,0 +1,39 @@
+{
+  "name": "neuropath-alchemy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "neuroPATH 'Алхимия Разума' - Telegram Web App для эмоциональной работы через 4 стихии",
+  "scripts": {
+    "check-deployment": "node scripts/check-deployment.js",
+    "dev": "cd nextjs-starter && bun run dev",
+    "build": "cd nextjs-starter && bun run build",
+    "start": "cd nextjs-starter && bun run start",
+    "lint": "cd nextjs-starter && bun run lint",
+    "bot:dev": "cd telegram-bot && bun run dev",
+    "bot:start": "cd telegram-bot && bun run start",
+    "setup": "cd nextjs-starter && bun install && cd ../telegram-bot && bun install",
+    "clean": "cd nextjs-starter && rm -rf .next node_modules && cd ../telegram-bot && rm -rf node_modules"
+  },
+  "keywords": [
+    "telegram",
+    "web-app",
+    "meditation",
+    "psychology",
+    "nextjs",
+    "supabase",
+    "grammy"
+  ],
+  "author": "BROK3 <tonifyspace@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ProximaCA/neuroPATH.git"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "workspaces": [
+    "nextjs-starter",
+    "telegram-bot"
+  ]
+} 

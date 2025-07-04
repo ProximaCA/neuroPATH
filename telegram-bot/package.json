@@ -1,0 +1,30 @@
+{
+  "name": "neuropath-telegram-bot",
+  "version": "1.0.0",
+  "description": "Telegram bot for neuroPATH Alchemy of Mind app",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js",
+    "dev": "nodemon bot.js"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "meditation",
+    "mental-health",
+    "web-app"
+  ],
+  "author": "BROK3",
+  "license": "MIT",
+  "dependencies": {
+    "grammy": "^1.21.1",
+    "dotenv": "^16.3.1",
+    "@supabase/supabase-js": "^2.50.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+} 
