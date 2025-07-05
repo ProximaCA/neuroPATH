@@ -44,7 +44,6 @@ export function Navigation({
             👤
             {user && (
               <Badge 
-                size="s" 
                 style={{ 
                   backgroundColor: "#00A9FF", 
                   color: "white",

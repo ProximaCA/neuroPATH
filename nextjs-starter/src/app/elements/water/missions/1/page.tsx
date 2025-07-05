@@ -14,7 +14,7 @@ import {
   IconButton,
 } from "@once-ui-system/core";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { MeditationPlayer } from "../../../../../components/MusicPlayer";
 import { MissionProgressTracker } from "../../../../../components/MissionProgressTracker";
 import { useUser } from "../../../../../lib/user-context";
@@ -69,6 +69,41 @@ export default function MissionPage() {
     setProgress(prev => ({ ...prev, timeRemaining: remaining }));
   };
 
+  const completeMission = useCallback(async () => {
+    setIsCompleting(true);
+    triggerHaptic('notification', 'success');
+    
+    try {
+      // Update local progress first for immediate feedback
+      setProgress(prev => ({ ...prev, isCompleted: true, isPlaying: false }));
+      
+      // Try to complete mission in database
+      if (user && updateUserProgress) {
+        await updateUserProgress(missionId, {
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+          current_step: 5,
+          progress_percentage: 100,
+          time_spent_seconds: 300, // 5 minutes
+        });
+        
+        // Try to call the complete mission function
+        const result = await completeUserMission(missionId);
+        console.log('Mission completion result:', result);
+      }
+      
+      // Show success regardless of database result
+      console.log('Mission completed successfully!');
+      
+    } catch (error) {
+      console.error('Error completing mission:', error);
+      // Don't revert the UI state - mission is still "completed" locally
+      triggerHaptic('notification', 'warning');
+    } finally {
+      setIsCompleting(false);
+    }
+  }, [user, updateUserProgress, completeUserMission, missionId]);
+
   const handleAudioEnded = () => {
     setProgress(prev => ({ ...prev, isPlaying: false }));
     // Auto complete mission when audio ends
@@ -105,7 +140,7 @@ export default function MissionPage() {
         clearInterval(timerInterval);
       }
     };
-  }, [progress.isPlaying, timerInterval]);
+  }, [progress.isPlaying, timerInterval, completeMission]);
 
   const startMission = async () => {
     triggerHaptic('impact', 'medium');
@@ -120,41 +155,6 @@ export default function MissionPage() {
         current_step: 1,
         progress_percentage: 20,
       });
-    }
-  };
-
-  const completeMission = async () => {
-    setIsCompleting(true);
-    triggerHaptic('notification', 'success');
-    
-    try {
-      // Update local progress first for immediate feedback
-      setProgress(prev => ({ ...prev, isCompleted: true, isPlaying: false }));
-      
-      // Try to complete mission in database
-      if (user && updateUserProgress) {
-        await updateUserProgress(missionId, {
-          status: 'completed',
-          completed_at: new Date().toISOString(),
-          current_step: 5,
-          progress_percentage: 100,
-          time_spent_seconds: 300, // 5 minutes
-        });
-        
-        // Try to call the complete mission function
-        const result = await completeUserMission(missionId);
-        console.log('Mission completion result:', result);
-      }
-      
-      // Show success regardless of database result
-      console.log('Mission completed successfully!');
-      
-    } catch (error) {
-      console.error('Error completing mission:', error);
-      // Don't revert the UI state - mission is still "completed" locally
-      triggerHaptic('notification', 'warning');
-    } finally {
-      setIsCompleting(false);
     }
   };
 

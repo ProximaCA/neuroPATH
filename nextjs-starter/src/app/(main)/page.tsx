@@ -200,9 +200,6 @@ export default function Home() {
                   gap: "4px" 
                 }}>
                   🔒
-                  <Text variant="code-default-xs" onBackground="neutral-weak">
-                    Скоро
-                  </Text>
                 </div>
               )}
             </Row>
