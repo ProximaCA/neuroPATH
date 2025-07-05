@@ -331,8 +331,8 @@ const MeditationPlayer: React.FC<MeditationPlayerProps> = ({
           {[1, 2, 3, 4, 5].map((index) => (
             <Row
               key={index}
-              width="3"
-              height={isPlaying ? "24" : "8"}
+              width={3}
+              height={isPlaying ? 24 : 8}
               radius="xs"
               style={{
                 backgroundColor: "#00A9FF",
@@ -377,12 +377,12 @@ const MeditationPlayer: React.FC<MeditationPlayerProps> = ({
             background="neutral-alpha-weak"
             border="neutral-alpha-weak"
             radius="full"
-            height="6"
+            height={6}
             fillWidth
           >
             <Row
               radius="full"
-              height="6"
+              height={6}
               style={{
                 backgroundColor: "#00A9FF",
                 width: "40%",

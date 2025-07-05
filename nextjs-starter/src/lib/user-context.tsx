@@ -286,6 +286,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
     if (!user || user.light_balance < amount) return false;
 
     try {
+      // Get current receiver balance
+      const { data: receiverData, error: receiverFetchError } = await supabase
+        .from('users')
+        .select('light_balance')
+        .eq('id', toUserId)
+        .single();
+
+      if (receiverFetchError) throw receiverFetchError;
+
       // Create transaction record
       const { error: transactionError } = await supabase
         .from('light_transactions')
@@ -294,7 +303,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
           to_user_id: toUserId,
           amount,
           transaction_type: 'friend_gift',
-          description: `Подарок СВЕТА от ${user.first_name}`,
+          description: `Подарок СВЕТ от ${user.first_name}`,
         });
 
       if (transactionError) throw transactionError;
@@ -314,7 +323,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       const { error: receiverError } = await supabase
         .from('users')
         .update({
-          light_balance: supabase.sql`light_balance + ${amount}`,
+          light_balance: receiverData.light_balance + amount,
           last_activity: new Date().toISOString(),
         })
         .eq('id', toUserId);

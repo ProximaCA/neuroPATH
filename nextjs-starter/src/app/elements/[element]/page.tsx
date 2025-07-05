@@ -175,7 +175,7 @@ export default function ElementPage() {
             </Link>
             <Link href="/profile">
               <Button variant="tertiary" size="s">
-                <Icon name="user" size="xs" />
+                👤
               </Button>
             </Link>
           </Row>
@@ -291,11 +291,7 @@ export default function ElementPage() {
                               onBackground="neutral-medium"
                             />
                           ) : (
-                            <Icon 
-                              name="lock" 
-                              size="l" 
-                              onBackground="neutral-weak"
-                            />
+                            <Text style={{ fontSize: "2rem" }}>🔒</Text>
                           )}
                         </Column>
 
@@ -358,7 +354,7 @@ export default function ElementPage() {
                           />
                           <Column gap="xs" fillWidth>
                             <Row gap="xs" align="center">
-                              <Icon name="star" size="xs" style={{ color: "#FFD700" }} />
+                              ⭐
                               <Text variant="code-default-xs" onBackground="neutral-weak">
                                 Артефакт: {artifact.name}
                               </Text>

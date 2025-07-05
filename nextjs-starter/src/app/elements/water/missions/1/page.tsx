@@ -141,7 +141,7 @@ export default function MissionPage() {
               </Link>
               <Link href="/profile">
                 <Button variant="tertiary" size="s">
-                  <Icon name="user" size="xs" />
+                  👤
                 </Button>
               </Link>
             </Row>
@@ -233,7 +233,7 @@ export default function MissionPage() {
               />
               <Column gap="xs" fillWidth>
                 <Row gap="xs" align="center">
-                  <Icon name="star" size="xs" style={{ color: "#FFD700" }} />
+                  ⭐
                   <Text variant="label-default-m" style={{ color: "#00A9FF" }}>
                     {artifactEarned ? 'Получено: Жемчужина Чуткости' : 'Награда: Жемчужина Чуткости'}
                   </Text>
@@ -307,7 +307,7 @@ export default function MissionPage() {
               />
               <Column gap="xs" align="center">
                 <Row gap="xs" align="center">
-                  <Icon name="star" size="s" style={{ color: "#FFD700" }} />
+                  ⭐
                   <Text variant="heading-strong-m" style={{ color: "#00A9FF" }}>
                     Жемчужина Чуткости
                   </Text>
@@ -450,7 +450,7 @@ export default function MissionPage() {
               opacity: 0.8
             }}
           >
-            "Ты — вода. Не борись. Стань потоком."
+            &ldquo;Ты — вода. Не борись. Стань потоком.&rdquo;
           </Text>
         </Column>
 

@@ -237,7 +237,12 @@ export default function ProfilePage() {
             }}
             fillWidth
           >
-            Артефакты
+            <Row gap="xs" align="center">
+              ⭐
+              <Text variant="heading-strong-s" style={{ color: "#FFD700" }}>
+                Артефакты
+              </Text>
+            </Row>
           </Button>
           <Button
             variant={activeTab === 'friends' ? 'primary' : 'secondary'}
@@ -309,7 +314,7 @@ export default function ProfilePage() {
               
               <Card padding="l" border="neutral-alpha-weak" radius="l" style={{ opacity: 0.6 }}>
                 <Column gap="s" align="center">
-                  <Icon name="lock" size="l" onBackground="neutral-weak" />
+                  <Text style={{ fontSize: "3rem" }}>🔒</Text>
                   <Text variant="body-default-s" onBackground="neutral-weak" align="center">
                     Пройди больше миссий, чтобы получить новые артефакты
                   </Text>

@@ -45,7 +45,7 @@ export default function RootLayout({
         path={meta.home.path}
       />
       <head>
-        <script src="https://telegram.org/js/telegram-web-app.js"></script>
+        <script src="https://telegram.org/js/telegram-web-app.js" async></script>
         <script
           id="theme-init"
           dangerouslySetInnerHTML={{

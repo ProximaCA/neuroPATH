@@ -34,7 +34,7 @@ export function MissionProgressTracker({
     if (progress && onProgressUpdate) {
       onProgressUpdate(progress.progress_percentage);
     }
-  }, [progress?.progress_percentage, onProgressUpdate]);
+  }, [progress, onProgressUpdate]);
 
   const handleStepForward = async () => {
     if (!progress || !user || isUpdating) return;

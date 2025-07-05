@@ -147,19 +147,8 @@ export default function Home() {
               🎨 Алхимия Разума 🧠
             </Badge>
             <Link href="/profile">
-              <Button 
-                variant="tertiary" 
-                size="s"
-                onClick={() => triggerHaptic('selection')}
-              >
-                <Row gap="4" align="center">
-                  <Icon name="user" size="xs" />
-                  {user && (
-                    <Text variant="code-default-xs" onBackground="neutral-medium">
-                      {user.first_name}
-                    </Text>
-                  )}
-                </Row>
+              <Button variant="tertiary" size="s">
+                👤
               </Button>
             </Link>
           </Row>
@@ -203,7 +192,17 @@ export default function Home() {
                     {element.isAvailable ? 'Доступно' : 'Скоро'}
                   </Text>
                   {!element.isAvailable && (
-                    <Icon name="lock" size="xs" onBackground="neutral-weak" />
+                    <div style={{ 
+                      opacity: 0.5, 
+                      display: "flex", 
+                      alignItems: "center", 
+                      gap: "4px" 
+                    }}>
+                      🔒
+                      <Text variant="code-default-xs" onBackground="neutral-weak">
+                        Скоро
+                      </Text>
+                    </div>
                   )}
                 </Row>
 
@@ -302,6 +301,22 @@ export default function Home() {
               <Icon name="sparkles" size="xs" onBackground="accent-medium" />
               <Text variant="code-default-xs" onBackground="accent-medium">
                 СВЕТ: {user.light_balance} | Уровень: {user.level}
+              </Text>
+            </Row>
+          )}
+          {user && (
+            <Row gap="s" align="center">
+              🎯
+              <Text variant="code-default-xs" onBackground="neutral-medium">
+                {user.total_missions_completed} миссий
+              </Text>
+            </Row>
+          )}
+          {user && (
+            <Row gap="s" align="center">
+              📊
+              <Text variant="code-default-xs" onBackground="neutral-medium">
+                {user.total_meditation_minutes} мин
               </Text>
             </Row>
           )}
