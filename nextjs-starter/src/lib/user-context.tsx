@@ -416,13 +416,19 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   // Initialize user when Telegram user is available
   useEffect(() => {
+    console.log('UserProvider useEffect triggered', { telegramUser, tgLoading });
+    
     if (telegramUser && !tgLoading) {
+      console.log('Initializing user with Telegram data:', telegramUser);
       initializeUser(telegramUser).then(() => {
+        console.log('User initialized, loading user data...');
         loadUserData(telegramUser.id).finally(() => {
+          console.log('User data loaded, setting isLoading to false');
           setIsLoading(false);
         });
       });
     } else if (!tgLoading) {
+      console.log('No Telegram user found, setting isLoading to false');
       setIsLoading(false);
     }
   }, [telegramUser, tgLoading]);

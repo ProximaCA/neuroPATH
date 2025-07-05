@@ -2,8 +2,8 @@
 TRUNCATE TABLE 
   user_artifacts,
   mission_progress,
-  practices,
-  artifacts,
+  practices, 
+  artifacts, 
   missions,
   elements,
   users,

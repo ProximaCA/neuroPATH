@@ -12,6 +12,9 @@ interface MeditationPlayerProps extends React.ComponentProps<typeof Column> {
   totalTime?: string;
   title?: string;
   description?: string;
+  audioSrc?: string;
+  onAudioTimeUpdate?: (currentTime: number) => void;
+  onEnded?: () => void;
 }
 
 interface Track {
@@ -274,25 +277,80 @@ const MeditationPlayer: React.FC<MeditationPlayerProps> = ({
   totalTime = "5:00",
   title = "Погружение",
   description = "Медитация стихии Воды",
+  audioSrc,
+  onAudioTimeUpdate,
+  onEnded,
   ...flex 
 }) => {
+  const progressPercent = currentTime && totalTime ? 
+    (parseInt(currentTime.split(':')[0]) * 60 + parseInt(currentTime.split(':')[1])) / 
+    (parseInt(totalTime.split(':')[0]) * 60 + parseInt(totalTime.split(':')[1])) * 100 : 0;
+
+  // Audio element ref
+  const audioRef = React.useRef<HTMLAudioElement>(null);
+
+  // Control audio playback
+  React.useEffect(() => {
+    if (!audioRef.current) return;
+    
+    if (isPlaying) {
+      audioRef.current.play().catch((error) => {
+        console.warn('Audio playback failed:', error);
+        // Fallback: continue without audio
+      });
+    } else {
+      audioRef.current.pause();
+    }
+  }, [isPlaying]);
+
+  // Handle audio time updates
+  const handleTimeUpdate = () => {
+    if (audioRef.current && onAudioTimeUpdate) {
+      onAudioTimeUpdate(audioRef.current.currentTime);
+    }
+  };
+
+  // Handle audio ended
+  const handleEnded = () => {
+    if (onEnded) {
+      onEnded();
+    }
+  };
+
+  // Handle audio load error
+  const handleError = () => {
+    console.warn('Audio file could not be loaded, continuing without audio');
+  };
+
   return (
     <Column
       fillWidth
       border="neutral-alpha-medium"
-      radius="l"
-      padding="l"
-      gap="l"
+      radius="xl"
+      padding="xl"
+      gap="xl"
       background="neutral-alpha-weak"
+      align="center"
       {...flex}
     >
+      {/* Hidden Audio Element */}
+      {audioSrc && (
+        <audio
+          ref={audioRef}
+          src={audioSrc}
+          onTimeUpdate={handleTimeUpdate}
+          onEnded={handleEnded}
+          onError={handleError}
+          preload="metadata"
+        />
+      )}
       <Background
         position="absolute"
         left="0"
         top="0"
         gradient={{
           display: true,
-          opacity: 20,
+          opacity: "15" as any,
           x: 50,
           y: 0,
           colorStart: "#00A9FF",
@@ -300,44 +358,63 @@ const MeditationPlayer: React.FC<MeditationPlayerProps> = ({
         }}
       />
       
-      <Column gap="m" style={{ position: "relative", zIndex: 1 }}>
-        <Row gap="m" align="center">
+      <Column gap="xl" align="center" style={{ position: "relative", zIndex: 1 }}>
+        {/* Header */}
+        <Column gap="s" align="center">
+          <Text variant="heading-strong-l" style={{ color: "#00A9FF" }} align="center">
+            {title}
+          </Text>
+          <Text variant="body-default-m" onBackground="neutral-weak" align="center">
+            {description}
+          </Text>
+        </Column>
+
+        {/* Meditation Visual Circle */}
+        <div
+          style={{
+            width: "200px",
+            height: "200px",
+            borderRadius: "50%",
+            background: "linear-gradient(135deg, #00A9FF, #0080CC)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "4rem",
+            boxShadow: isPlaying ? "0 0 40px rgba(0, 169, 255, 0.3)" : "0 0 20px rgba(0, 169, 255, 0.1)",
+            transition: "all 0.5s ease",
+            animation: isPlaying ? "breathe 4s ease-in-out infinite" : "none",
+            position: "relative",
+            overflow: "hidden"
+          }}
+        >
           <div
             style={{
-              width: "64px",
-              height: "64px",
-              borderRadius: "12px",
-              background: "linear-gradient(135deg, #00A9FF, #0080CC)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "1.5rem"
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              background: `conic-gradient(from 0deg, #00A9FF ${progressPercent * 3.6}deg, transparent ${progressPercent * 3.6}deg)`,
+              borderRadius: "50%",
+              opacity: 0.3
             }}
-          >
-            🌊
-          </div>
-          <Column gap="xs" fillWidth>
-            <Text variant="heading-strong-m" style={{ color: "#00A9FF" }}>
-              {title}
-            </Text>
-            <Text variant="body-default-s" onBackground="neutral-weak">
-              {description}
-            </Text>
-          </Column>
-        </Row>
+          />
+          🌊
+        </div>
 
-        {/* Audio visualizer bars */}
-        <Row gap="xs" horizontal="center" paddingY="m">
-          {[1, 2, 3, 4, 5].map((index) => (
-            <Row
+        {/* Audio Visualizer */}
+        <Row gap="xs" horizontal="center" style={{ height: "40px", alignItems: "end" }}>
+          {[1, 2, 3, 4, 5, 6, 7].map((index) => (
+            <div
               key={index}
-              width={3}
-              height={isPlaying ? 24 : 8}
-              radius="xs"
               style={{
+                width: "4px",
+                height: isPlaying ? `${Math.random() * 30 + 10}px` : "8px",
                 backgroundColor: "#00A9FF",
-                opacity: isPlaying ? 1 : 0.3,
+                borderRadius: "2px",
+                opacity: isPlaying ? 0.8 : 0.3,
                 transition: "all 0.3s ease",
+                animation: isPlaying ? `wave ${0.5 + Math.random() * 0.5}s ease-in-out infinite alternate` : "none",
                 animationDelay: `${index * 100}ms`
               }}
             />
@@ -345,12 +422,17 @@ const MeditationPlayer: React.FC<MeditationPlayerProps> = ({
         </Row>
 
         {/* Controls */}
-        <Row gap="m" horizontal="center">
+        <Row gap="l" horizontal="center" align="center">
           <IconButton
-            variant="secondary"
+            variant="tertiary"
             icon="chevronLeft"
-            size="m"
+            size="l"
             tooltip="Предыдущий этап"
+            style={{
+              width: "48px",
+              height: "48px",
+              borderRadius: "50%"
+            }}
           />
           <IconButton
             variant="primary"
@@ -360,47 +442,94 @@ const MeditationPlayer: React.FC<MeditationPlayerProps> = ({
             onClick={onPlayPause}
             style={{
               backgroundColor: "#00A9FF",
-              borderColor: "#00A9FF"
+              borderColor: "#00A9FF",
+              width: "72px",
+              height: "72px",
+              borderRadius: "50%",
+              boxShadow: "0 4px 20px rgba(0, 169, 255, 0.3)"
             }}
           />
           <IconButton
-            variant="secondary"
+            variant="tertiary"
             icon="chevronRight"
-            size="m"
+            size="l"
             tooltip="Следующий этап"
+            style={{
+              width: "48px",
+              height: "48px",
+              borderRadius: "50%"
+            }}
           />
         </Row>
 
-        {/* Progress */}
-        <Column gap="s">
-          <Row
-            background="neutral-alpha-weak"
-            border="neutral-alpha-weak"
-            radius="full"
-            height={6}
-            fillWidth
+        {/* Progress Bar */}
+        <Column gap="s" fillWidth style={{ maxWidth: "300px" }}>
+          <div
+            style={{ 
+              width: "100%",
+              height: "8px",
+              backgroundColor: "var(--neutral-alpha-weak)",
+              borderRadius: "4px",
+              overflow: "hidden",
+              position: "relative"
+            }}
           >
-            <Row
-              radius="full"
-              height={6}
+            <div
               style={{
+                width: `${progressPercent}%`,
+                height: "100%",
                 backgroundColor: "#00A9FF",
-                width: "40%",
-                transition: "width 0.3s ease"
+                borderRadius: "4px",
+                transition: "width 0.3s ease",
+                boxShadow: "0 0 10px rgba(0, 169, 255, 0.5)"
               }}
             />
-          </Row>
+            <div
+              style={{
+                position: "absolute",
+                left: `${progressPercent}%`,
+                top: "50%",
+                transform: "translate(-50%, -50%)",
+                width: "16px",
+                height: "16px",
+                backgroundColor: "#00A9FF",
+                borderRadius: "50%",
+                border: "2px solid white",
+                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)"
+              }}
+            />
+          </div>
           <Row
             fillWidth
-            onBackground="neutral-weak"
-            textVariant="body-default-xs"
             horizontal="space-between"
+            align="center"
           >
-            <Text>{currentTime}</Text>
-            <Text>{totalTime}</Text>
+            <Text variant="body-default-s" onBackground="neutral-medium">
+              {currentTime}
+            </Text>
+            <Text variant="body-default-s" onBackground="neutral-medium">
+              {totalTime}
+            </Text>
           </Row>
         </Column>
       </Column>
+
+      <style jsx>{`
+        @keyframes breathe {
+          0%, 100% { 
+            transform: scale(1);
+            box-shadow: 0 0 20px rgba(0, 169, 255, 0.2);
+          }
+          50% { 
+            transform: scale(1.05);
+            box-shadow: 0 0 40px rgba(0, 169, 255, 0.4);
+          }
+        }
+        @keyframes wave {
+          0% { height: 8px; }
+          100% { height: 32px; }
+        }
+      `}</style>
     </Column>
   );
 };

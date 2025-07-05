@@ -14,21 +14,26 @@ import {
   NavIcon,
   Flex,
   ToggleButton,
+  Background,
 } from "@once-ui-system/core";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
 import { useUser } from "../../lib/user-context";
 import { triggerHaptic } from "../../lib/telegram";
+import { Navigation } from "../../components/Navigation";
 
 interface User {
   id: string;
   telegram_id: number;
   first_name: string;
+  last_name?: string;
   username?: string;
   light_balance: number;
   level: number;
   total_missions_completed: number;
+  total_meditation_minutes: number;
+  photo_url?: string;
 }
 
 interface Artifact {
@@ -38,6 +43,7 @@ interface Artifact {
   image_url: string;
   element_name: string;
   rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  light_value: number;
 }
 
 interface Friend {
@@ -52,10 +58,13 @@ const mockUser: User = {
   id: "user-1",
   telegram_id: 123456789,
   first_name: "BROK3",
+  last_name: "Lastname",
   username: "brok3_user",
   light_balance: 150,
   level: 3,
   total_missions_completed: 5,
+  total_meditation_minutes: 120,
+  photo_url: "/images/default-avatar.jpg",
 };
 
 const mockArtifacts: Artifact[] = [
@@ -65,7 +74,8 @@ const mockArtifacts: Artifact[] = [
     description: "Первый артефакт стихии Воды. Дает способность глубже чувствовать эмоции.",
     image_url: "/images/artifacts/pearl.jpg",
     element_name: "Вода",
-    rarity: "common"
+    rarity: "common",
+    light_value: 10,
   },
   {
     id: "artifact-2", 
@@ -73,7 +83,8 @@ const mockArtifacts: Artifact[] = [
     description: "Редкий артефакт за прохождение всех миссий Воды.",
     image_url: "/images/artifacts/lock.jpg",
     element_name: "Вода",
-    rarity: "rare"
+    rarity: "rare",
+    light_value: 20,
   }
 ];
 
@@ -107,6 +118,7 @@ export default function ProfilePage() {
   const [friends, setFriends] = useState<Friend[]>(mockFriends);
   const [activeTab, setActiveTab] = useState<'artifacts' | 'friends' | 'stats'>('artifacts');
   const [sendingLight, setSendingLight] = useState<string | null>(null);
+  const [copiedReferral, setCopiedReferral] = useState(false);
 
   const getRarityColor = (rarity: string) => {
     switch(rarity) {
@@ -164,300 +176,381 @@ export default function ProfilePage() {
     };
   };
 
-  if (isLoading || !user) {
+  // Generate referral link
+  const referralLink = user ? `https://t.me/brain_alchemy_bot?start=ref_${user.id}` : '';
+
+  const copyReferralLink = async () => {
+    try {
+      await navigator.clipboard.writeText(referralLink);
+      setCopiedReferral(true);
+      triggerHaptic('notification', 'success');
+      setTimeout(() => setCopiedReferral(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy:', error);
+      triggerHaptic('notification', 'error');
+    }
+  };
+
+  // Mock invited friends data (в реальном приложении получать из API)
+  const invitedFriends = [
+    { id: 1, name: "Анна", avatar: "/images/avatars/anna.jpg", lightGifted: 50 },
+    { id: 2, name: "Михаил", avatar: "/images/avatars/mikhail.jpg", lightGifted: 100 },
+    { id: 3, name: "Елена", avatar: "/images/avatars/elena.jpg", lightGifted: 75 },
+  ];
+
+  if (isLoading) {
     return (
-      <Column fillWidth center padding="l" style={{ minHeight: "100vh" }}>
-        <Text>Загрузка профиля...</Text>
+      <Column fillWidth style={{ minHeight: "100vh" }}>
+        <Background
+          position="absolute"
+          left="0"
+          top="0"
+          gradient={{
+            display: true,
+            opacity: "20" as any,
+            x: 50,
+            y: 0,
+            colorStart: "#00A9FF",
+            colorEnd: "static-transparent",
+          }}
+        />
+
+        {/* Navigation */}
+        <Navigation showBackButton backHref="/" backText="На главную" />
+
+        <Column fillWidth center padding="l" gap="xl" style={{ position: "relative", zIndex: 1, minHeight: "60vh" }}>
+          <Column gap="m" align="center">
+            <div
+              style={{
+                width: "80px",
+                height: "80px",
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, #00A9FF, #0080CC)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "2rem",
+                animation: "pulse 2s infinite"
+              }}
+            >
+              👤
+            </div>
+            <Text variant="heading-strong-l" style={{ color: "#00A9FF" }}>
+              Загрузка профиля...
+            </Text>
+            <Text variant="body-default-s" onBackground="neutral-weak" align="center">
+              Синхронизация данных с Telegram
+            </Text>
+          </Column>
+        </Column>
+
+        <style jsx>{`
+          @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+          }
+        `}</style>
+      </Column>
+    );
+  }
+
+  if (!user) {
+    return (
+      <Column fillWidth style={{ minHeight: "100vh" }}>
+        <Background
+          position="absolute"
+          left="0"
+          top="0"
+          gradient={{
+            display: true,
+            opacity: "20" as any,
+            x: 50,
+            y: 0,
+            colorStart: "#FF6B6B",
+            colorEnd: "static-transparent",
+          }}
+        />
+
+        {/* Navigation */}
+        <Navigation showBackButton backHref="/" backText="На главную" />
+
+        <Column fillWidth center padding="l" gap="xl" style={{ position: "relative", zIndex: 1, minHeight: "60vh" }}>
+          <Column gap="m" align="center">
+            <Text style={{ fontSize: "4rem" }}>❌</Text>
+            <Text variant="heading-strong-l" style={{ color: "#FF6B6B" }}>
+              Ошибка загрузки
+            </Text>
+            <Text variant="body-default-s" onBackground="neutral-weak" align="center">
+              Не удалось загрузить данные профиля
+            </Text>
+            <Button
+              variant="primary"
+              onClick={() => window.location.reload()}
+              style={{ 
+                backgroundColor: "#00A9FF",
+                borderColor: "#00A9FF"
+              }}
+            >
+              Попробовать снова
+            </Button>
+          </Column>
+        </Column>
       </Column>
     );
   }
 
   return (
-    <Column fillWidth center padding="l" style={{ minHeight: "100vh" }}>
-      <Column maxWidth="m" gap="xl">
-        
-        {/* Header */}
-        <Row gap="s" align="center">
-          <Link href="/">
-            <Button variant="tertiary" prefixIcon="arrow-left" size="s">
-              Назад
-            </Button>
-          </Link>
-        </Row>
+    <Column fillWidth style={{ minHeight: "100vh" }}>
+      <Background
+        position="absolute"
+        left="0"
+        top="0"
+        gradient={{
+          display: true,
+          opacity: "20" as any,
+          x: 50,
+          y: 0,
+          colorStart: "#00A9FF",
+          colorEnd: "static-transparent",
+        }}
+      />
 
-        {/* Profile Header */}
-        <Card padding="l" border="neutral-alpha-medium" radius="l">
-          <Row gap="l" align="center">
-            <Avatar 
-              size="l" 
-              style={{ 
-                background: "linear-gradient(135deg, #00A9FF, #87CEEB)",
-                color: "white",
-                fontSize: "2rem"
-              }}
-            >
-              {user.first_name.charAt(0)}
-            </Avatar>
-            
-            <Column gap="s" fillWidth>
-              <Row gap="s" align="center">
-                <Heading variant="heading-strong-l">
-                  {user.first_name}
+      {/* Navigation */}
+      <Navigation showBackButton backHref="/" backText="На главную" />
+
+      <Column fillWidth center padding="l" gap="xl" style={{ position: "relative", zIndex: 1 }}>
+        <Column maxWidth="m" gap="xl" fillWidth>
+          
+          {/* Profile Header */}
+          <Card radius="l" padding="l" background="neutral-alpha-weak" align="center">
+            <Column gap="m" align="center">
+              <Avatar 
+                src={user.photo_url || "/images/default-avatar.jpg"}
+                size="xl"
+                style={{
+                  border: "3px solid #00A9FF",
+                  boxShadow: "0 4px 20px rgba(0, 169, 255, 0.3)"
+                }}
+              />
+              <Column gap="xs" align="center">
+                <Heading variant="heading-strong-l" style={{ color: "#00A9FF" }}>
+                  {user.first_name} {user.last_name || ''}
                 </Heading>
-                <Badge style={{ backgroundColor: "#FFD700", color: "#000" }}>
+                {user.username && (
+                  <Text variant="body-default-s" onBackground="neutral-weak">
+                    @{user.username}
+                  </Text>
+                )}
+                <Badge 
+                  style={{ 
+                    backgroundColor: "#00A9FF", 
+                    color: "white",
+                    fontSize: "0.875rem",
+                    padding: "8px 16px"
+                  }}
+                >
                   Уровень {user.level}
                 </Badge>
-              </Row>
-              
-              <Text variant="body-default-s" onBackground="neutral-weak">
-                @{user.username} • {user.total_missions_completed} миссий пройдено
-              </Text>
-
-              {/* Light Balance */}
-              <Row gap="s" align="center" marginTop="s">
-                <Icon name="star" size="s" style={{ color: "#FFD700" }} />
-                <Text variant="heading-default-m" style={{ color: "#FFD700" }}>
-                  {user.light_balance} СВЕТА
-                </Text>
-                <Button variant="tertiary" size="s" prefixIcon="plus">
-                  Получить
-                </Button>
-              </Row>
+              </Column>
             </Column>
-          </Row>
-        </Card>
+          </Card>
 
-        {/* Navigation Tabs */}
-        <Row gap="s" fillWidth>
-          <Button
-            variant={activeTab === 'artifacts' ? 'primary' : 'secondary'}
-            onClick={() => {
-              triggerHaptic('selection');
-              setActiveTab('artifacts');
-            }}
-            fillWidth
-          >
-            <Row gap="xs" align="center">
-              ⭐
-              <Text variant="heading-strong-s" style={{ color: "#FFD700" }}>
-                Артефакты
-              </Text>
-            </Row>
-          </Button>
-          <Button
-            variant={activeTab === 'friends' ? 'primary' : 'secondary'}
-            onClick={() => {
-              triggerHaptic('selection');
-              setActiveTab('friends');
-            }}
-            fillWidth
-          >
-            Друзья
-          </Button>
-          <Button
-            variant={activeTab === 'stats' ? 'primary' : 'secondary'}
-            onClick={() => {
-              triggerHaptic('selection');
-              setActiveTab('stats');
-            }}
-            fillWidth
-          >
-            Статистика
-          </Button>
-        </Row>
-
-        {/* Content based on active tab */}
-        {activeTab === 'artifacts' && (
-          <Column gap="l">
-            <Heading variant="heading-strong-l">Коллекция артефактов</Heading>
+          {/* Stats Cards */}
+          <Row gap="m" fillWidth>
+            <Card radius="l" padding="m" background="neutral-alpha-weak" fillWidth align="center">
+              <Column gap="xs" align="center">
+                <Text variant="display-strong-l" style={{ color: "#00A9FF" }}>
+                  ✨
+                </Text>
+                <Text variant="heading-strong-m" style={{ color: "#00A9FF" }}>
+                  {user.light_balance}
+                </Text>
+                <Text variant="body-default-s" onBackground="neutral-weak">
+                  СВЕТ
+                </Text>
+              </Column>
+            </Card>
             
+            <Card radius="l" padding="m" background="neutral-alpha-weak" fillWidth align="center">
+              <Column gap="xs" align="center">
+                <Text variant="display-strong-l">
+                  🎯
+                </Text>
+                <Text variant="heading-strong-m" style={{ color: "#00A9FF" }}>
+                  {user.total_missions_completed}
+                </Text>
+                <Text variant="body-default-s" onBackground="neutral-weak">
+                  Миссий
+                </Text>
+              </Column>
+            </Card>
+
+            <Card radius="l" padding="m" background="neutral-alpha-weak" fillWidth align="center">
+              <Column gap="xs" align="center">
+                <Text variant="display-strong-l">
+                  ⏱️
+                </Text>
+                <Text variant="heading-strong-m" style={{ color: "#00A9FF" }}>
+                  {user.total_meditation_minutes}
+                </Text>
+                <Text variant="body-default-s" onBackground="neutral-weak">
+                  Минут
+                </Text>
+              </Column>
+            </Card>
+          </Row>
+
+          {/* Referral System */}
+          <Card radius="l" padding="l" background="brand-alpha-weak" border="brand-alpha-medium">
             <Column gap="m">
-              {userArtifacts.map((userArtifact) => {
-                const artifact = userArtifact.artifact;
-                return (
-                  <Card key={artifact.id} padding="l" border="neutral-alpha-medium" radius="l">
-                    <Row gap="l" align="start">
-                      <Avatar 
-                        size="m" 
-                        src={artifact.icon_url}
-                        style={{ 
-                          borderRadius: '8px',
-                          border: `2px solid ${getRarityColor(artifact.rarity)}`
-                        }}
-                      />
-                      
-                      <Column gap="s" fillWidth>
-                        <Row gap="s" align="center">
-                          <Heading variant="heading-strong-m">
-                            {artifact.name}
-                          </Heading>
-                          <Badge style={{ 
-                            backgroundColor: getRarityColor(artifact.rarity), 
-                            color: 'white' 
-                          }}>
-                            {getRarityLabel(artifact.rarity)}
-                          </Badge>
-                        </Row>
-                        
-                        <Text variant="code-default-xs" onBackground="neutral-medium">
-                          Получен: {new Date(userArtifact.acquired_at).toLocaleDateString()}
-                        </Text>
-                        
-                        <Text variant="body-default-s" onBackground="neutral-weak">
-                          {artifact.description}
-                        </Text>
-                      </Column>
-                    </Row>
-                  </Card>
-                );
-              })}
-              
-              <Card padding="l" border="neutral-alpha-weak" radius="l" style={{ opacity: 0.6 }}>
-                <Column gap="s" align="center">
-                  <Text style={{ fontSize: "3rem" }}>🔒</Text>
-                  <Text variant="body-default-s" onBackground="neutral-weak" align="center">
-                    Пройди больше миссий, чтобы получить новые артефакты
+              <Row gap="s" align="center">
+                <Text variant="display-strong-l">🎁</Text>
+                <Column gap="xs" fillWidth>
+                  <Heading variant="heading-strong-m" style={{ color: "#00A9FF" }}>
+                    Пригласи друзей
+                  </Heading>
+                  <Text variant="body-default-s" onBackground="neutral-weak">
+                    За каждого приглашенного друга +100 СВЕТА
                   </Text>
                 </Column>
-              </Card>
-            </Column>
-          </Column>
-        )}
+              </Row>
 
-        {activeTab === 'friends' && (
-          <Column gap="l">
-            <Row gap="s" align="center" horizontal="space-between">
-              <Heading variant="heading-strong-l">Друзья</Heading>
-              <Button variant="secondary" prefixIcon="plus" size="s">
-                Пригласить
-              </Button>
-            </Row>
-            
-            <Column gap="m">
-              {friends.map((friend) => (
-                <Card key={friend.id} padding="l" border="neutral-alpha-medium" radius="l">
-                  <Row gap="l" align="center" horizontal="space-between">
-                    <Row gap="m" align="center">
-                      <Avatar size="s" src={friend.avatar_url}>
-                        {friend.first_name.charAt(0)}
-                      </Avatar>
-                      
-                      <Column gap="xs">
-                        <Text variant="heading-default-s">
-                          {friend.first_name}
-                        </Text>
-                        <Text variant="code-default-xs" onBackground="neutral-weak">
-                          @{friend.username}
-                        </Text>
-                      </Column>
-                    </Row>
-                    
-                    <Button 
-                      variant="primary" 
-                      size="s" 
-                      prefixIcon="star"
-                      style={{ backgroundColor: "#FFD700", borderColor: "#FFD700", color: "#000" }}
-                      onClick={() => handleSendLight(friend.id)}
-                      disabled={sendingLight === friend.id || !canAfford(10)}
+              <Card radius="m" padding="m" background="neutral-alpha-weak">
+                <Column gap="s">
+                  <Text variant="label-default-s" onBackground="neutral-weak">
+                    Твоя реферальная ссылка:
+                  </Text>
+                  <Row gap="s" align="center">
+                    <Text 
+                      variant="code-default-s" 
+                      style={{ 
+                        flex: 1, 
+                        backgroundColor: "var(--neutral-alpha-weak)",
+                        padding: "8px",
+                        borderRadius: "4px",
+                        fontSize: "0.75rem"
+                      }}
                     >
-                      {sendingLight === friend.id ? 'Отправка...' : 'Отправить СВЕТ'}
+                      {referralLink}
+                    </Text>
+                    <Button
+                      variant="secondary"
+                      size="s"
+                      onClick={copyReferralLink}
+                      style={{
+                        backgroundColor: copiedReferral ? "#4CAF50" : undefined
+                      }}
+                    >
+                      {copiedReferral ? "✅" : "📋"}
                     </Button>
                   </Row>
-                </Card>
-              ))}
-            </Column>
-          </Column>
-        )}
+                </Column>
+              </Card>
 
-        {activeTab === 'stats' && (
-          <Column gap="l">
-            <Heading variant="heading-strong-l">Статистика</Heading>
-            
+              {/* Invited Friends */}
+              {invitedFriends.length > 0 && (
+                <Column gap="s">
+                  <Text variant="heading-strong-s">
+                    Приглашенные друзья ({invitedFriends.length})
+                  </Text>
+                  <Column gap="xs">
+                    {invitedFriends.map((friend) => (
+                      <Row key={friend.id} gap="m" align="center" padding="s">
+                        <Avatar src={friend.avatar} size="s" />
+                        <Column gap="xs" fillWidth>
+                          <Text variant="label-default-m">{friend.name}</Text>
+                          <Text variant="body-default-xs" onBackground="neutral-weak">
+                            Подарил вам {friend.lightGifted} СВЕТА
+                          </Text>
+                        </Column>
+                        <Badge style={{ backgroundColor: "#4CAF50", color: "white" }}>
+                          +100
+                        </Badge>
+                      </Row>
+                    ))}
+                  </Column>
+                </Column>
+              )}
+            </Column>
+          </Card>
+
+          {/* Artifacts Section */}
+          <Card radius="l" padding="l" background="neutral-alpha-weak">
             <Column gap="m">
-              <Card padding="l" border="neutral-alpha-medium" radius="l">
-                <Column gap="m">
-                  <Text variant="heading-default-m">Прогресс по стихиям</Text>
-                  
-                  {(() => {
-                    const progress = calculateElementProgress();
-                    const waterCompleted = missionProgress.filter(m => 
-                      ['d9e3f8a0-cb3a-4c9c-8f1a-6d5b7a8e9c0d', 'a7b2c1d0-e8f9-4a3b-9c8d-7e6f5a4b3c2d', 'b3c4d5e6-f7a8-4b9c-8d1e-2f3a4b5c6d7e'].includes(m.mission_id) && 
-                      m.status === 'completed'
-                    ).length;
-                    
-                    return (
-                      <>
-                        <Column gap="s">
-                          <Row horizontal="space-between" align="center">
-                            <Row gap="s" align="center">
-                              <Text>🌊 Вода</Text>
-                              <Badge>{waterCompleted}/3 миссий</Badge>
-                            </Row>
-                            <Text style={{ color: "#00A9FF" }}>{progress.water}%</Text>
-                          </Row>
-                          <div style={{ 
-                            width: "100%", height: "8px", backgroundColor: "var(--neutral-alpha-weak)", 
-                            borderRadius: "4px", overflow: "hidden" 
-                          }}>
-                            <div style={{ 
-                              width: `${progress.water}%`, height: "100%", backgroundColor: "#00A9FF", 
-                              transition: "width 0.3s ease" 
-                            }} />
-                          </div>
-                        </Column>
-
-                        <Column gap="s">
-                          <Row horizontal="space-between" align="center">
-                            <Row gap="s" align="center">
-                              <Text>🔥 Огонь</Text>
-                              <Badge>0/4 миссий</Badge>
-                            </Row>
-                            <Text onBackground="neutral-weak">0%</Text>
-                          </Row>
-                          <div style={{ 
-                            width: "100%", height: "8px", backgroundColor: "var(--neutral-alpha-weak)", 
-                            borderRadius: "4px", overflow: "hidden" 
-                          }}>
-                            <div style={{ 
-                              width: "0%", height: "100%", backgroundColor: "#FF4500", 
-                              transition: "width 0.3s ease" 
-                            }} />
-                          </div>
-                        </Column>
-                      </>
-                    );
-                  })()}
-                </Column>
-              </Card>
-
-              <Card padding="l" border="neutral-alpha-medium" radius="l">
-                <Column gap="m">
-                  <Text variant="heading-default-m">Общая статистика</Text>
-                  
-                  <Row gap="l">
-                    <Column align="center" gap="xs">
-                      <Text variant="display-strong-s">{user.total_missions_completed}</Text>
-                      <Text variant="code-default-xs" onBackground="neutral-weak">Миссий</Text>
-                    </Column>
-                    <Column align="center" gap="xs">
-                      <Text variant="display-strong-s">{userArtifacts.length}</Text>
-                      <Text variant="code-default-xs" onBackground="neutral-weak">Артефактов</Text>
-                    </Column>
-                    <Column align="center" gap="xs">
-                      <Text variant="display-strong-s">{friends.length}</Text>
-                      <Text variant="code-default-xs" onBackground="neutral-weak">Друзей</Text>
-                    </Column>
-                    <Column align="center" gap="xs">
-                      <Text variant="display-strong-s">{user.light_balance}</Text>
-                      <Text variant="code-default-xs" onBackground="neutral-weak">СВЕТА</Text>
-                    </Column>
-                  </Row>
-                </Column>
-              </Card>
+              <Row gap="xs" align="center">
+                ⭐
+                <Text variant="heading-strong-s" style={{ color: "#FFD700" }}>
+                  Артефакты
+                </Text>
+              </Row>
+              
+              {userArtifacts.length > 0 ? (
+                <Row gap="m" wrap>
+                  {userArtifacts.map((userArtifact) => (
+                    <Card 
+                      key={userArtifact.id}
+                      padding="m" 
+                      border="neutral-alpha-weak" 
+                      radius="m"
+                      style={{ minWidth: "120px" }}
+                      align="center"
+                    >
+                      <Column gap="s" align="center">
+                        <Avatar 
+                          src={userArtifact.artifact.icon_url}
+                          size="l"
+                        />
+                        <Text variant="label-default-s" align="center">
+                          {userArtifact.artifact.name}
+                        </Text>
+                        <Badge style={{ 
+                          backgroundColor: userArtifact.artifact.rarity === 'legendary' ? '#FFD700' : 
+                                         userArtifact.artifact.rarity === 'epic' ? '#9C27B0' : '#00A9FF',
+                          color: 'white',
+                          fontSize: '0.75rem'
+                        }}>
+                          {userArtifact.artifact.light_value} СВЕТА
+                        </Badge>
+                      </Column>
+                    </Card>
+                  ))}
+                </Row>
+              ) : (
+                <Card padding="l" border="neutral-alpha-weak" radius="l" style={{ opacity: 0.6 }}>
+                  <Column gap="s" align="center">
+                    <Text style={{ fontSize: "3rem" }}>🔒</Text>
+                    <Text variant="body-default-s" onBackground="neutral-weak" align="center">
+                      Пройди больше миссий, чтобы получить новые артефакты
+                    </Text>
+                  </Column>
+                </Card>
+              )}
             </Column>
-          </Column>
-        )}
+          </Card>
 
+          {/* Quick Actions */}
+          <Column gap="m">
+            <Link href="/elements/water">
+              <Button
+                variant="primary"
+                fillWidth
+                style={{ 
+                  backgroundColor: "#00A9FF",
+                  borderColor: "#00A9FF"
+                }}
+                arrowIcon
+              >
+                Продолжить медитации
+              </Button>
+            </Link>
+            <Link href="/">
+              <Button variant="secondary" fillWidth>
+                На главную
+              </Button>
+            </Link>
+          </Column>
+
+        </Column>
       </Column>
     </Column>
   );
