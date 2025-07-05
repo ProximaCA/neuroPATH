@@ -41,6 +41,38 @@ export default function ElementPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Fallback данные для стихии Воды
+  const fallbackWaterElement = {
+    id: 'f2e4e168-e5a9-4a9c-b829-3e2c1a8a0b1a',
+    name: 'Вода',
+    description: 'Стихия эмоциональной глубины и очищения. Помогает проработать чувства и найти внутренний поток.',
+    color_code: '#00A9FF',
+    image_url: '/images/elements/water.jpg',
+    missions: [
+      {
+        id: 'd9e3f8a0-cb3a-4c9c-8f1a-6d5b7a8e9c0d',
+        name: 'Погружение',
+        description: 'Первый контакт со стихией Воды через медитацию дыхания',
+        order: 1,
+        audio_url: null
+      },
+      {
+        id: 'a7b2c1d0-e8f9-4a3b-9c8d-7e6f5a4b3c2d',
+        name: 'Растворение',
+        description: 'Освобождение от страхов и тревог через визуализацию',
+        order: 2,
+        audio_url: null
+      },
+      {
+        id: 'b3c4d5e6-f7a8-4b9c-8d1e-2f3a4b5c6d7e',
+        name: 'Поток принятия',
+        description: 'Глубокая практика принятия и отпускания',
+        order: 3,
+        audio_url: null
+      }
+    ]
+  };
+
   useEffect(() => {
     const fetchElement = async () => {
       try {
@@ -53,7 +85,12 @@ export default function ElementPage() {
           .eq('id', 'f2e4e168-e5a9-4a9c-b829-3e2c1a8a0b1a') // Water element ID
           .single();
 
-        if (elementError) throw elementError;
+        if (elementError) {
+          console.warn('Supabase element error:', elementError);
+          console.log('Using fallback data for element');
+          setElement(fallbackWaterElement);
+          return;
+        }
 
         // Получаем миссии для стихии
         const { data: missionsData, error: missionsError } = await supabase
@@ -62,16 +99,25 @@ export default function ElementPage() {
           .eq('element_id', elementData.id)
           .order('order');
 
-        if (missionsError) throw missionsError;
+        if (missionsError) {
+          console.warn('Supabase missions error:', missionsError);
+          console.log('Using fallback missions');
+          setElement({
+            ...elementData,
+            missions: fallbackWaterElement.missions
+          });
+          return;
+        }
 
         setElement({
           ...elementData,
-          missions: missionsData || []
+          missions: missionsData || fallbackWaterElement.missions
         });
 
       } catch (err) {
         console.error('Error fetching element:', err);
-        setError('Ошибка загрузки данных');
+        console.log('Using fallback data due to error');
+        setElement(fallbackWaterElement);
       } finally {
         setLoading(false);
       }

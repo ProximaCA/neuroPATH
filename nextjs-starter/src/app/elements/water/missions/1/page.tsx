@@ -205,15 +205,15 @@ export default function MissionPage() {
                 <Text variant="heading-strong-s">Подготовка:</Text>
                 <Column gap="xs">
                   <Row gap="xs" align="center">
-                    <Icon name="check" size="xs" style={{ color: "#00A9FF" }} />
+                    ✅
                     <Text variant="body-default-s">Найдите тихое место</Text>
                   </Row>
                   <Row gap="xs" align="center">
-                    <Icon name="check" size="xs" style={{ color: "#00A9FF" }} />
+                    ✅
                     <Text variant="body-default-s">Используйте наушники</Text>
                   </Row>
                   <Row gap="xs" align="center">
-                    <Icon name="check" size="xs" style={{ color: "#00A9FF" }} />
+                    ✅
                     <Text variant="body-default-s">Примите удобную позу</Text>
                   </Row>
                 </Column>

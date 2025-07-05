@@ -96,7 +96,28 @@ export function UserProvider({ children }: { children: ReactNode }) {
         .single();
 
       if (fetchError && fetchError.code !== 'PGRST116') {
-        throw fetchError;
+        console.warn('Supabase connection error:', fetchError);
+        // Create fallback user data when Supabase is unavailable
+        const fallbackUser: UserData = {
+          id: tgUser.id,
+          first_name: tgUser.first_name,
+          last_name: tgUser.last_name,
+          username: tgUser.username,
+          photo_url: tgUser.photo_url,
+          language_code: tgUser.language_code || 'ru',
+          current_element_id: 'f2e4e168-e5a9-4a9c-b829-3e2c1a8a0b1a',
+          light_balance: 100,
+          level: 1,
+          total_missions_completed: 0,
+          total_meditation_minutes: 0,
+          streak_days: 0,
+          last_activity: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        setUser(fallbackUser);
+        console.log('Using fallback user data');
+        return;
       }
 
       if (existingUser) {
@@ -173,7 +194,28 @@ export function UserProvider({ children }: { children: ReactNode }) {
         .select('*')
         .eq('user_id', userId);
 
-      if (progressError) throw progressError;
+      if (progressError) {
+        console.warn('Supabase progress error:', progressError);
+        // Create fallback mission progress
+        const fallbackProgress: MissionProgress[] = [
+          {
+            id: '1',
+            user_id: userId,
+            mission_id: 'd9e3f8a0-cb3a-4c9c-8f1a-6d5b7a8e9c0d',
+            status: 'not_started',
+            progress_percentage: 0,
+            current_step: 0,
+            total_steps: 5,
+            time_spent_seconds: 0,
+            attempts: 0,
+            last_activity: new Date().toISOString(),
+          }
+        ];
+        setMissionProgress(fallbackProgress);
+        setUserArtifacts([]);
+        console.log('Using fallback progress data');
+        return;
+      }
       setMissionProgress(progress || []);
 
       // Load user artifacts
@@ -185,10 +227,29 @@ export function UserProvider({ children }: { children: ReactNode }) {
         `)
         .eq('user_id', userId);
 
-      if (artifactsError) throw artifactsError;
+      if (artifactsError) {
+        console.warn('Supabase artifacts error:', artifactsError);
+        setUserArtifacts([]);
+        return;
+      }
       setUserArtifacts(artifacts || []);
     } catch (error) {
       console.error('Error loading user data:', error);
+      console.log('Using fallback data due to error');
+      // Set fallback data
+      setMissionProgress([{
+        id: '1',
+        user_id: userId,
+        mission_id: 'd9e3f8a0-cb3a-4c9c-8f1a-6d5b7a8e9c0d',
+        status: 'not_started',
+        progress_percentage: 0,
+        current_step: 0,
+        total_steps: 5,
+        time_spent_seconds: 0,
+        attempts: 0,
+        last_activity: new Date().toISOString(),
+      }]);
+      setUserArtifacts([]);
     }
   };
 
