@@ -115,10 +115,69 @@ export default function ProfilePage() {
     canAfford,
     refreshUserData 
   } = useUser();
-  const [friends, setFriends] = useState<Friend[]>(mockFriends);
+  const [friends, setFriends] = useState<Friend[]>([]);
   const [activeTab, setActiveTab] = useState<'artifacts' | 'friends' | 'stats'>('artifacts');
   const [sendingLight, setSendingLight] = useState<string | null>(null);
   const [copiedReferral, setCopiedReferral] = useState(false);
+  const [invitedFriends, setInvitedFriends] = useState<any[]>([]);
+
+  // Load invited friends from Supabase or use fallback
+  useEffect(() => {
+    const loadInvitedFriends = async () => {
+      if (!user) return;
+
+      try {
+        // В реальном приложении здесь будет запрос к базе данных
+        // для получения списка приглашенных друзей
+        const { data: referrals, error } = await supabase
+          .from('user_referrals')
+          .select(`
+            referred_user_id,
+            created_at,
+            users!referred_user_id(
+              id,
+              first_name,
+              last_name,
+              username,
+              photo_url
+            )
+          `)
+          .eq('referrer_user_id', user.id);
+
+        if (error) {
+          console.warn('Failed to load referrals:', error);
+          setInvitedFriends([]);
+        } else {
+          setInvitedFriends(referrals || []);
+        }
+      } catch (error) {
+        console.error('Error loading invited friends:', error);
+        setInvitedFriends([]);
+      }
+    };
+
+    loadInvitedFriends();
+  }, [user]);
+
+  const handleSendLight = async (friendId: number, amount: number = 10) => {
+    if (!user || !canAfford(amount)) {
+      triggerHaptic('notification', 'error');
+      return;
+    }
+
+    setSendingLight(friendId.toString());
+    const success = await sendLight(friendId, amount);
+    
+    if (success) {
+      triggerHaptic('notification', 'success');
+      // Refresh user data to update balance
+      await refreshUserData();
+    } else {
+      triggerHaptic('notification', 'error');
+    }
+    
+    setSendingLight(null);
+  };
 
   const getRarityColor = (rarity: string) => {
     switch(rarity) {
@@ -138,24 +197,6 @@ export default function ProfilePage() {
       case 'legendary': return 'Легендарный';
       default: return 'Обычный';
     }
-  };
-
-  const handleSendLight = async (friendId: string, amount: number = 10) => {
-    if (!user || !canAfford(amount)) {
-      triggerHaptic('notification', 'error');
-      return;
-    }
-
-    setSendingLight(friendId);
-    const success = await sendLight(parseInt(friendId), amount);
-    
-    if (success) {
-      triggerHaptic('notification', 'success');
-    } else {
-      triggerHaptic('notification', 'error');
-    }
-    
-    setSendingLight(null);
   };
 
   const calculateElementProgress = () => {
@@ -190,13 +231,6 @@ export default function ProfilePage() {
       triggerHaptic('notification', 'error');
     }
   };
-
-  // Mock invited friends data (в реальном приложении получать из API)
-  const invitedFriends = [
-    { id: 1, name: "Анна", avatar: "/images/avatars/anna.jpg", lightGifted: 50 },
-    { id: 2, name: "Михаил", avatar: "/images/avatars/mikhail.jpg", lightGifted: 100 },
-    { id: 3, name: "Елена", avatar: "/images/avatars/elena.jpg", lightGifted: 75 },
-  ];
 
   if (isLoading) {
     return (
@@ -448,27 +482,67 @@ export default function ProfilePage() {
               </Card>
 
               {/* Invited Friends */}
-              {invitedFriends.length > 0 && (
+              {invitedFriends.length > 0 ? (
                 <Column gap="s">
                   <Text variant="heading-strong-s">
                     Приглашенные друзья ({invitedFriends.length})
                   </Text>
                   <Column gap="xs">
-                    {invitedFriends.map((friend) => (
-                      <Row key={friend.id} gap="m" align="center" padding="s">
-                        <Avatar src={friend.avatar} size="s" />
-                        <Column gap="xs" fillWidth>
-                          <Text variant="label-default-m">{friend.name}</Text>
-                          <Text variant="body-default-xs" onBackground="neutral-weak">
-                            Подарил вам {friend.lightGifted} СВЕТА
-                          </Text>
-                        </Column>
-                        <Badge style={{ backgroundColor: "#4CAF50", color: "white" }}>
-                          +100
-                        </Badge>
-                      </Row>
-                    ))}
+                    {invitedFriends.map((referral) => {
+                      const friend = referral.users;
+                      const isSending = sendingLight === friend.id.toString();
+                      
+                      return (
+                        <Row key={referral.referred_user_id} gap="m" align="center" padding="s">
+                          <Avatar 
+                            src={friend.photo_url || "/images/default-avatar.jpg"} 
+                            size="s" 
+                          />
+                          <Column gap="xs" fillWidth>
+                            <Text variant="label-default-m">
+                              {friend.first_name} {friend.last_name || ''}
+                            </Text>
+                            {friend.username && (
+                              <Text variant="body-default-xs" onBackground="neutral-weak">
+                                @{friend.username}
+                              </Text>
+                            )}
+                            <Text variant="body-default-xs" onBackground="neutral-weak">
+                              Присоединился {new Date(referral.created_at).toLocaleDateString('ru-RU')}
+                            </Text>
+                          </Column>
+                          
+                          <Column gap="xs" align="end">
+                            <Button
+                              variant="secondary"
+                              size="s"
+                              onClick={() => handleSendLight(friend.id, 10)}
+                              disabled={isSending || !canAfford(10)}
+                              style={{
+                                backgroundColor: isSending ? "#4CAF50" : undefined,
+                                minWidth: "80px"
+                              }}
+                            >
+                              {isSending ? "..." : canAfford(10) ? "💫 10" : "🔒"}
+                            </Button>
+                            <Badge style={{ backgroundColor: "#4CAF50", color: "white" }}>
+                              +100 за приглашение
+                            </Badge>
+                          </Column>
+                        </Row>
+                      );
+                    })}
                   </Column>
+                </Column>
+              ) : (
+                <Column gap="s" align="center" padding="m">
+                  <Text style={{ fontSize: "2rem" }}>👥</Text>
+                  <Text variant="body-default-s" onBackground="neutral-weak" align="center">
+                    Пока никого не пригласили
+                  </Text>
+                  <Text variant="body-default-xs" onBackground="neutral-weak" align="center">
+                    Поделитесь ссылкой с друзьями, чтобы получить +100 СВЕТА за каждого
+                  </Text>
                 </Column>
               )}
             </Column>

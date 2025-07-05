@@ -400,7 +400,8 @@ const MeditationPlayer: React.FC<MeditationPlayerProps> = ({
             transition: "all 0.5s ease",
             animation: isPlaying ? "breathe 4s ease-in-out infinite" : "none",
             position: "relative",
-            overflow: "hidden"
+            overflow: "hidden",
+            margin: "0 auto"
           }}
         >
           <div
@@ -415,11 +416,29 @@ const MeditationPlayer: React.FC<MeditationPlayerProps> = ({
               opacity: 0.3
             }}
           />
-          🌊
+          
+          {/* Water emoji background */}
+          <div style={{ 
+            position: "absolute",
+            fontSize: "4rem",
+            opacity: 0.3
+          }}>
+            🌊
+          </div>
+          
+          {/* Play/Pause icon in center */}
+          <div style={{ 
+            position: "relative",
+            zIndex: 2,
+            fontSize: "2.5rem",
+            cursor: "pointer"
+          }} onClick={onPlayPause}>
+            {isPlaying ? "⏸️" : "▶️"}
+          </div>
         </div>
 
-        {/* Audio Visualizer */}
-        <Row gap="xs" horizontal="center" style={{ height: "40px", alignItems: "end" }}>
+        {/* Audio Visualizer - centered */}
+        <Row gap="xs" horizontal="center" style={{ height: "40px", alignItems: "end", justifyContent: "center" }}>
           {[1, 2, 3, 4, 5, 6, 7].map((index) => (
             <div
               key={index}
