@@ -1,3 +1,6 @@
+// Загружаем переменные окружения
+require('dotenv').config();
+
 const { Bot, InlineKeyboard } = require('grammy');
 
 // Замените на ваш токен бота от @BotFather
@@ -7,6 +10,11 @@ const BOT_TOKEN = process.env.BOT_TOKEN || 'YOUR_BOT_TOKEN_HERE';
 const WEB_APP_URL = process.env.WEB_APP_URL || 'http://localhost:3000';
 
 const bot = new Bot(BOT_TOKEN);
+
+// Отладочный вывод
+console.log('🤖 Запуск Telegram бота...');
+console.log('🔑 Токен загружен:', BOT_TOKEN ? 'Да' : 'Нет');
+console.log('🌐 URL приложения:', WEB_APP_URL);
 
 // Команда /start
 bot.command('start', async (ctx) => {
@@ -105,10 +113,8 @@ bot.catch((err) => {
 });
 
 // Запуск бота
-console.log('🤖 Запуск Telegram бота...');
 bot.start();
 
-console.log(`🌐 Веб-приложение: ${WEB_APP_URL}`);
 console.log('✅ Бот запущен и готов к работе!');
 
 // Graceful shutdown

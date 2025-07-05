@@ -168,161 +168,161 @@ export default function Home() {
         </Column>
 
         {/* Elements Grid */}
-        <Row gap="l"  horizontal="center" >
+        <Column gap="l" fillWidth align="center">
           {elements.map((element) => (
-            <Row key={element.id} maxWidth={24}>
-                              <Card 
-                  radius="l-4" 
-                  direction="column" 
-                  style={{
-                    opacity: element.isAvailable ? 1 : 0.7,
-                    transition: "all 0.3s ease",
-                    transform: 'translateY(0)',
-                    
-                  }}
-                  className={element.isAvailable ? "hover:translate-y-[-2px]" : ""}
-                >
-                
-                {/* Header с именем и статусом */}
-                <Row fillWidth paddingX="20" paddingY="12" gap="8" vertical="center">
-                  <Text variant="display-strong-s" style={{ fontSize: "1.5rem" }}>
-                    {element.emoji}
+            <Card 
+              key={element.id}
+              maxWidth="m"
+              fillWidth
+              radius="l-4" 
+              direction="column" 
+              style={{
+                opacity: element.isAvailable ? 1 : 0.7,
+                transition: "all 0.3s ease",
+                transform: 'translateY(0)',
+              }}
+              className={element.isAvailable ? "hover:translate-y-[-2px]" : ""}
+            >
+            
+            {/* Header с именем и статусом */}
+            <Row fillWidth paddingX="20" paddingY="12" gap="8" vertical="center">
+              <Text variant="display-strong-s" style={{ fontSize: "1.5rem" }}>
+                {element.emoji}
+              </Text>
+              <Text variant="label-default-s" onBackground="neutral-medium">
+                {element.isAvailable ? 'Доступно' : 'Скоро'}
+              </Text>
+              {!element.isAvailable && (
+                <div style={{ 
+                  opacity: 0.5, 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: "4px" 
+                }}>
+                  🔒
+                  <Text variant="code-default-xs" onBackground="neutral-weak">
+                    Скоро
                   </Text>
-                  <Text variant="label-default-s" onBackground="neutral-medium">
-                    {element.isAvailable ? 'Доступно' : 'Скоро'}
-                  </Text>
-                  {!element.isAvailable && (
-                    <div style={{ 
-                      opacity: 0.5, 
-                      display: "flex", 
-                      alignItems: "center", 
-                      gap: "4px" 
-                    }}>
-                      🔒
-                      <Text variant="code-default-xs" onBackground="neutral-weak">
-                        Скоро
-                      </Text>
-                    </div>
-                  )}
-                </Row>
+                </div>
+              )}
+            </Row>
 
-                {/* Изображение элемента */}
-                <div
-                  style={{
-                    width: '100%',
-                    height: '200px',
-                    borderRadius: '12px',
-                    backgroundImage: `url(${element.image})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    filter: element.isAvailable ? 'none' : 'grayscale(100%)',
-                  }}
-                />
+            {/* Изображение элемента */}
+            <div
+              style={{
+                width: '100%',
+                height: '200px',
+                borderRadius: '12px',
+                backgroundImage: `url(${element.image})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                filter: element.isAvailable ? 'none' : 'grayscale(100%)',
+              }}
+            />
 
-                {/* Контент карточки */}
-                <Column fillWidth paddingX="20" paddingY="24" gap="12">
-                
-                  <Heading 
-                    variant="heading-strong-l" 
-                    style={{ color: element.isAvailable ? element.color : "var(--neutral-weak)" }}
-                  >
-                    {element.name}
-        </Heading>
-                  
-        <Text
-          onBackground="neutral-weak"
-                    variant="body-default-s"
-          wrap="balance"
-        >
-                    {element.description}
-        </Text>
-                </Column>
+            {/* Контент карточки */}
+            <Column fillWidth paddingX="20" paddingY="24" gap="12">
+            
+              <Heading 
+                variant="heading-strong-l" 
+                style={{ color: element.isAvailable ? element.color : "var(--neutral-weak)" }}
+              >
+                {element.name}
+      </Heading>
+              
+      <Text
+        onBackground="neutral-weak"
+                variant="body-default-s"
+        wrap="balance"
+      >
+                {element.description}
+      </Text>
+            </Column>
 
-                {/* Статистика */}
-                <Line background="neutral-alpha-medium" />
-                <Row
-                  paddingX="20" paddingY="12" gap="16" vertical="center"
-                  textVariant="label-default-s" onBackground="neutral-medium"
-                >
-                  <Row gap="4" align="center">
-                    <Icon name="target" size="xs" onBackground="neutral-strong" />
-                    <Text>{element.missions} миссий</Text>
-                  </Row>
-                  <Row gap="4" align="center">
-                    <Icon name="chart" size="xs" onBackground="neutral-strong" />
-                    <Text>{element.progress}% прогресс</Text>
-                  </Row>
-                </Row>
+            {/* Статистика */}
+            <Line background="neutral-alpha-medium" />
+            <Row
+              paddingX="20" paddingY="12" gap="16" vertical="center"
+              textVariant="label-default-s" onBackground="neutral-medium"
+            >
+              <Row gap="4" align="center">
+                🎯
+                <Text>{element.missions} миссий</Text>
+              </Row>
+              <Row gap="4" align="center">
+                📊
+                <Text>{element.progress}% прогресс</Text>
+              </Row>
+            </Row>
 
-                {/* Кнопка действия */}
-                <Row fillWidth paddingX="20" paddingBottom="20">
-                  {element.isAvailable ? (
-                    <Link href={`/elements/${element.id}`} style={{ width: "100%" }}>
-        <Button
-                        fillWidth
-                        variant="primary"
-                        style={{ 
-                          backgroundColor: element.color,
-                          borderColor: element.color,
-                        }}
-          arrowIcon
-                        onClick={() => triggerHaptic('impact', 'medium')}
-                      >
-                        Начать путь
-                      </Button>
-                    </Link>
-                  ) : (
-                    <Button
+            {/* Кнопка действия */}
+            <Row fillWidth paddingX="20" paddingBottom="20">
+              {element.isAvailable ? (
+                <Link href={`/elements/${element.id}`} style={{ width: "100%" }}>
+      <Button
                       fillWidth
-                      variant="secondary"
-                      disabled
-                      onClick={() => triggerHaptic('notification', 'warning')}
+                      variant="primary"
+                      style={{ 
+                        backgroundColor: element.color,
+                        borderColor: element.color,
+                      }}
+        arrowIcon
+                      onClick={() => triggerHaptic('impact', 'medium')}
                     >
-                      Скоро откроется
-        </Button>
-                  )}
-                </Row>
+                      Начать путь
+                    </Button>
+                  </Link>
+              ) : (
+                <Button
+                  fillWidth
+                  variant="secondary"
+                  disabled
+                  onClick={() => triggerHaptic('notification', 'warning')}
+                >
+                  Скоро откроется
+      </Button>
+              )}
+            </Row>
 
-              </Card>
-            </Row>
-          ))}
-        </Row>
-
-        {/* Footer Info */}
-        <Column gap="s" align="center" marginTop="xl">
-          <Text variant="body-default-s" onBackground="neutral-weak" align="center">
-            🌊 Начни свое путешествие со стихии Воды
-          </Text>
-          <Text variant="code-default-xs" onBackground="neutral-weak" align="center">
-            {loading || userLoading ? 'Загрузка данных...' : 'Остальные стихии откроются по мере прохождения'}
-          </Text>
-          {user && (
-            <Row gap="8" align="center" marginTop="s">
-              <Icon name="sparkles" size="xs" onBackground="accent-medium" />
-              <Text variant="code-default-xs" onBackground="accent-medium">
-                СВЕТ: {user.light_balance} | Уровень: {user.level}
-              </Text>
-            </Row>
-          )}
-          {user && (
-            <Row gap="s" align="center">
-              🎯
-              <Text variant="code-default-xs" onBackground="neutral-medium">
-                {user.total_missions_completed} миссий
-              </Text>
-            </Row>
-          )}
-          {user && (
-            <Row gap="s" align="center">
-              📊
-              <Text variant="code-default-xs" onBackground="neutral-medium">
-                {user.total_meditation_minutes} мин
-              </Text>
-            </Row>
-          )}
-        </Column>
-
+          </Card>
+        ))}
       </Column>
+
+      {/* Footer Info */}
+      <Column gap="s" align="center" marginTop="xl">
+        <Text variant="body-default-s" onBackground="neutral-weak" align="center">
+          🌊 Начни свое путешествие со стихии Воды
+        </Text>
+        <Text variant="code-default-xs" onBackground="neutral-weak" align="center">
+          {loading || userLoading ? 'Загрузка данных...' : 'Остальные стихии откроются по мере прохождения'}
+        </Text>
+        {user && (
+          <Row gap="8" align="center" marginTop="s">
+            ✨
+            <Text variant="code-default-xs" onBackground="accent-medium">
+              СВЕТ: {user.light_balance} | Уровень: {user.level}
+            </Text>
+          </Row>
+        )}
+        {user && (
+          <Row gap="s" align="center">
+            🎯
+            <Text variant="code-default-xs" onBackground="neutral-medium">
+              {user.total_missions_completed} миссий
+            </Text>
+          </Row>
+        )}
+        {user && (
+          <Row gap="s" align="center">
+            📊
+            <Text variant="code-default-xs" onBackground="neutral-medium">
+              {user.total_meditation_minutes} мин
+            </Text>
+          </Row>
+        )}
+      </Column>
+
     </Column>
-  );
+  </Column>
+);
 }
