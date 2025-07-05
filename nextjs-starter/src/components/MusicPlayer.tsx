@@ -15,6 +15,10 @@ interface MeditationPlayerProps extends React.ComponentProps<typeof Column> {
   audioSrc?: string;
   onAudioTimeUpdate?: (currentTime: number) => void;
   onEnded?: () => void;
+  onRestart?: () => void;
+  isCompleted?: boolean;
+  canComplete?: boolean;
+  onAudioLoadedMetadata?: (event: Event) => void;
 }
 
 interface Track {
@@ -280,6 +284,10 @@ const MeditationPlayer: React.FC<MeditationPlayerProps> = ({
   audioSrc,
   onAudioTimeUpdate,
   onEnded,
+  onRestart,
+  isCompleted = false,
+  canComplete = false,
+  onAudioLoadedMetadata,
   ...flex 
 }) => {
   const progressPercent = currentTime && totalTime ? 
@@ -322,6 +330,13 @@ const MeditationPlayer: React.FC<MeditationPlayerProps> = ({
     console.warn('Audio file could not be loaded, continuing without audio');
   };
 
+  // Handle audio metadata loaded
+  const handleLoadedMetadata = (event: React.SyntheticEvent<HTMLAudioElement>) => {
+    if (onAudioLoadedMetadata) {
+      onAudioLoadedMetadata(event.nativeEvent);
+    }
+  };
+
   return (
     <Column
       fillWidth
@@ -341,6 +356,7 @@ const MeditationPlayer: React.FC<MeditationPlayerProps> = ({
           onTimeUpdate={handleTimeUpdate}
           onEnded={handleEnded}
           onError={handleError}
+          onLoadedMetadata={handleLoadedMetadata}
           preload="metadata"
         />
       )}
@@ -423,17 +439,21 @@ const MeditationPlayer: React.FC<MeditationPlayerProps> = ({
 
         {/* Controls */}
         <Row gap="l" horizontal="center" align="center">
-          <IconButton
-            variant="tertiary"
-            icon="chevronLeft"
-            size="l"
-            tooltip="Предыдущий этап"
-            style={{
-              width: "48px",
-              height: "48px",
-              borderRadius: "50%"
-            }}
-          />
+          {isCompleted && onRestart && (
+            <Button
+              variant="secondary"
+              size="m"
+              onClick={onRestart}
+              style={{
+                borderRadius: "50%",
+                width: "48px",
+                height: "48px"
+              }}
+            >
+              🔄
+            </Button>
+          )}
+          
           <IconButton
             variant="primary"
             icon={isPlaying ? "pause" : "play"}
@@ -449,17 +469,10 @@ const MeditationPlayer: React.FC<MeditationPlayerProps> = ({
               boxShadow: "0 4px 20px rgba(0, 169, 255, 0.3)"
             }}
           />
-          <IconButton
-            variant="tertiary"
-            icon="chevronRight"
-            size="l"
-            tooltip="Следующий этап"
-            style={{
-              width: "48px",
-              height: "48px",
-              borderRadius: "50%"
-            }}
-          />
+          
+          {canComplete && (
+            <div style={{ width: "48px", height: "48px" }} />
+          )}
         </Row>
 
         {/* Progress Bar */}

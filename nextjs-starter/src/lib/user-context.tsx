@@ -95,7 +95,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         .eq('id', tgUser.id)
         .single();
 
-      if (fetchError && fetchError.code !== 'PGRST116') {
+      if (fetchError) {
         console.warn('Supabase connection error:', fetchError);
         // Create fallback user data when Supabase is unavailable
         const fallbackUser: UserData = {
@@ -116,7 +116,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
           updated_at: new Date().toISOString(),
         };
         setUser(fallbackUser);
-        console.log('Using fallback user data');
+        console.log('Using fallback user data due to Supabase error');
         return;
       }
 
@@ -136,10 +136,14 @@ export function UserProvider({ children }: { children: ReactNode }) {
           .select()
           .single();
 
-        if (updateError) throw updateError;
-        setUser(updatedUser);
+        if (updateError) {
+          console.warn('Failed to update user, using existing data:', updateError);
+          setUser(existingUser);
+        } else {
+          setUser(updatedUser);
+        }
       } else {
-        // Create new user
+        // Try to create new user, but fallback if fails
         const { data: newUser, error: createError } = await supabase
           .from('users')
           .insert({
@@ -154,34 +158,81 @@ export function UserProvider({ children }: { children: ReactNode }) {
           .select()
           .single();
 
-        if (createError) throw createError;
+        if (createError) {
+          console.warn('Failed to create user in database, using fallback:', createError);
+          // Create fallback user
+          const fallbackUser: UserData = {
+            id: tgUser.id,
+            first_name: tgUser.first_name,
+            last_name: tgUser.last_name,
+            username: tgUser.username,
+            photo_url: tgUser.photo_url,
+            language_code: tgUser.language_code || 'ru',
+            current_element_id: 'f2e4e168-e5a9-4a9c-b829-3e2c1a8a0b1a',
+            light_balance: 100,
+            level: 1,
+            total_missions_completed: 0,
+            total_meditation_minutes: 0,
+            streak_days: 0,
+            last_activity: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          };
+          setUser(fallbackUser);
+          return;
+        }
+
         setUser(newUser);
 
-        // Initialize mission progress for new user
-        const { data: missions } = await supabase
-          .from('missions')
-          .select('id')
-          .eq('element_id', 'f2e4e168-e5a9-4a9c-b829-3e2c1a8a0b1a');
+        // Try to initialize mission progress for new user
+        try {
+          const { data: missions } = await supabase
+            .from('missions')
+            .select('id')
+            .eq('element_id', 'f2e4e168-e5a9-4a9c-b829-3e2c1a8a0b1a');
 
-        if (missions) {
-          const progressData = missions.map(mission => ({
-            user_id: tgUser.id,
-            mission_id: mission.id,
-            status: 'not_started' as const,
-            progress_percentage: 0,
-            current_step: 0,
-            total_steps: 3,
-            time_spent_seconds: 0,
-            attempts: 0,
-          }));
+          if (missions) {
+            const progressData = missions.map(mission => ({
+              user_id: tgUser.id,
+              mission_id: mission.id,
+              status: 'not_started' as const,
+              progress_percentage: 0,
+              current_step: 0,
+              total_steps: 3,
+              time_spent_seconds: 0,
+              attempts: 0,
+            }));
 
-          await supabase
-            .from('mission_progress')
-            .insert(progressData);
+            await supabase
+              .from('mission_progress')
+              .insert(progressData);
+          }
+        } catch (progressError) {
+          console.warn('Failed to initialize mission progress:', progressError);
         }
       }
     } catch (error) {
       console.error('Error initializing user:', error);
+      // Always create fallback user if everything fails
+      const fallbackUser: UserData = {
+        id: tgUser.id,
+        first_name: tgUser.first_name,
+        last_name: tgUser.last_name,
+        username: tgUser.username,
+        photo_url: tgUser.photo_url,
+        language_code: tgUser.language_code || 'ru',
+        current_element_id: 'f2e4e168-e5a9-4a9c-b829-3e2c1a8a0b1a',
+        light_balance: 100,
+        level: 1,
+        total_missions_completed: 0,
+        total_meditation_minutes: 0,
+        streak_days: 0,
+        last_activity: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      setUser(fallbackUser);
+      console.log('Using fallback user data due to critical error');
     }
   };
 

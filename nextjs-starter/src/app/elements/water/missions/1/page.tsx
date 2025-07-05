@@ -45,6 +45,8 @@ export default function MissionPage() {
   const [isCompleting, setIsCompleting] = useState(false);
   const [currentTimeSeconds, setCurrentTimeSeconds] = useState(0);
   const [timerInterval, setTimerInterval] = useState<NodeJS.Timeout | null>(null);
+  const [totalDurationSeconds, setTotalDurationSeconds] = useState(300); // Default 5 minutes
+  const [hasFinishedMeditation, setHasFinishedMeditation] = useState(false);
   
   const userProgress = getMissionProgress(missionId);
   const artifactEarned = hasArtifact('c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f');
@@ -65,8 +67,35 @@ export default function MissionPage() {
 
   const handleAudioTimeUpdate = (currentTime: number) => {
     setCurrentTimeSeconds(currentTime);
-    const remaining = Math.max(0, 300 - currentTime);
+    const remaining = Math.max(0, totalDurationSeconds - currentTime);
     setProgress(prev => ({ ...prev, timeRemaining: remaining }));
+  };
+
+  const handleAudioEnded = () => {
+    setProgress(prev => ({ ...prev, isPlaying: false }));
+    setHasFinishedMeditation(true);
+    triggerHaptic('notification', 'success');
+  };
+
+  // Handle audio metadata loaded to get real duration
+  const handleAudioLoadedMetadata = (event: Event) => {
+    const audio = event.target as HTMLAudioElement;
+    if (audio.duration && !isNaN(audio.duration)) {
+      setTotalDurationSeconds(Math.floor(audio.duration));
+      setProgress(prev => ({ ...prev, timeRemaining: Math.floor(audio.duration) }));
+    }
+  };
+
+  const restartMeditation = () => {
+    setCurrentTimeSeconds(0);
+    setProgress(prev => ({ 
+      ...prev, 
+      isPlaying: false, 
+      timeRemaining: totalDurationSeconds,
+      isCompleted: false 
+    }));
+    setHasFinishedMeditation(false);
+    triggerHaptic('selection');
   };
 
   const completeMission = useCallback(async () => {
@@ -104,25 +133,21 @@ export default function MissionPage() {
     }
   }, [user, updateUserProgress, completeUserMission, missionId]);
 
-  const handleAudioEnded = () => {
-    setProgress(prev => ({ ...prev, isPlaying: false }));
-    // Auto complete mission when audio ends
-    completeMission();
-  };
-
   // Fallback timer for when audio is not available
   useEffect(() => {
     if (progress.isPlaying && !timerInterval) {
       const interval = setInterval(() => {
         setCurrentTimeSeconds(prev => {
           const newTime = prev + 1;
-          const remaining = Math.max(0, 300 - newTime);
+          const remaining = Math.max(0, totalDurationSeconds - newTime);
           setProgress(p => ({ ...p, timeRemaining: remaining }));
           
           // Auto complete when time is up
-          if (newTime >= 300) {
-            completeMission();
-            return 300;
+          if (newTime >= totalDurationSeconds) {
+            setHasFinishedMeditation(true);
+            setProgress(p => ({ ...p, isPlaying: false }));
+            triggerHaptic('notification', 'success');
+            return totalDurationSeconds;
           }
           
           return newTime;
@@ -140,7 +165,7 @@ export default function MissionPage() {
         clearInterval(timerInterval);
       }
     };
-  }, [progress.isPlaying, timerInterval, completeMission]);
+  }, [progress.isPlaying, timerInterval, completeMission, totalDurationSeconds]);
 
   const startMission = async () => {
     triggerHaptic('impact', 'medium');
@@ -232,7 +257,7 @@ export default function MissionPage() {
                 filter: "brightness(0.9)"
               }}
             >
-              ��
+
             </div>
 
             {/* Mission Description */}
@@ -391,7 +416,7 @@ export default function MissionPage() {
             <Column gap="m" fillWidth>
               <Link href="/elements/water">
                 <Button variant="primary" fillWidth arrowIcon>
-                  К следующей миссии
+                  К списку миссий
                 </Button>
               </Link>
               <Link href="/profile">
@@ -485,12 +510,16 @@ export default function MissionPage() {
             isPlaying={progress.isPlaying}
             onPlayPause={togglePlayPause}
             currentTime={formatTime(currentTimeSeconds)}
-            totalTime="5:00"
+            totalTime={formatTime(totalDurationSeconds)}
             title={missionSteps[progress.currentStep - 1]?.title || "Погружение"}
             description="Медитация стихии Воды"
             audioSrc="/audio/water-meditation.mp3"
             onAudioTimeUpdate={handleAudioTimeUpdate}
             onEnded={handleAudioEnded}
+            onRestart={restartMeditation}
+            isCompleted={progress.isCompleted}
+            canComplete={hasFinishedMeditation}
+            onAudioLoadedMetadata={handleAudioLoadedMetadata}
           />
 
           {/* Meditation Visual */}
@@ -527,26 +556,37 @@ export default function MissionPage() {
             </Text>
           </Column>
 
-          {/* Complete Button */}
-          <Column gap="m" align="center" fillWidth>
-            <Button
-              variant="primary"
-              size="l"
-              fillWidth
-              style={{ 
-                backgroundColor: "#00A9FF",
-                borderColor: "#00A9FF",
-                maxWidth: "300px"
-              }}
-              onClick={completeMission}
-              disabled={isCompleting}
-            >
-              {isCompleting ? "Завершение..." : "Завершить медитацию"}
-            </Button>
-            <Text variant="body-default-s" onBackground="neutral-weak" align="center">
-              Нажмите когда будете готовы завершить сессию
-            </Text>
-          </Column>
+          {/* Complete Button - only show when meditation is finished */}
+          {hasFinishedMeditation && (
+            <Column gap="m" align="center" fillWidth>
+              <Button
+                variant="primary"
+                size="l"
+                fillWidth
+                style={{ 
+                  backgroundColor: "#00A9FF",
+                  borderColor: "#00A9FF",
+                  maxWidth: "300px"
+                }}
+                onClick={completeMission}
+                disabled={isCompleting}
+              >
+                {isCompleting ? "Завершение..." : "Завершить медитацию"}
+              </Button>
+              <Text variant="body-default-s" onBackground="neutral-weak" align="center">
+                Медитация завершена! Можете получить награду
+              </Text>
+            </Column>
+          )}
+
+          {/* Instructions when meditation not finished */}
+          {!hasFinishedMeditation && (
+            <Column gap="s" align="center" fillWidth>
+              <Text variant="body-default-s" onBackground="neutral-weak" align="center">
+                Прослушайте медитацию до конца, чтобы завершить миссию
+              </Text>
+            </Column>
+          )}
         </Column>
       </Column>
 

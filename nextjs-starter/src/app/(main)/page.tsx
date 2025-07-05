@@ -148,7 +148,7 @@ export default function Home() {
             </Badge>
             <Link href="/profile">
               <Button variant="tertiary" size="s">
-                👤
+                👤Профиль
               </Button>
             </Link>
           </Row>

@@ -221,7 +221,7 @@ export default function ElementPage() {
             </Link>
             <Link href="/profile">
               <Button variant="tertiary" size="s">
-                👤
+                👤Профиль
               </Button>
             </Link>
           </Row>

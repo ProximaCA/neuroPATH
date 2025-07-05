@@ -233,7 +233,7 @@ export default function ProfilePage() {
                 animation: "pulse 2s infinite"
               }}
             >
-              👤
+              👤Профиль
             </div>
             <Text variant="heading-strong-l" style={{ color: "#00A9FF" }}>
               Загрузка профиля...

@@ -41,7 +41,7 @@ export function Navigation({
       <Link href="/profile">
         <Button variant="tertiary" size="s" style={{ position: "relative" }}>
           <Row gap="xs" align="center">
-            👤
+            👤Профиль
             {user && (
               <Badge 
                 style={{ 
