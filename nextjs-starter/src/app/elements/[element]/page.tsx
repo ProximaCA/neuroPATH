@@ -15,7 +15,6 @@ import {
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { supabase } from "../../../lib/supabase";
 
 interface Mission {
   id: string;
@@ -74,61 +73,20 @@ export default function ElementPage() {
       ]
     };
 
-    const fetchElement = async () => {
-      try {
-        setLoading(true);
-        
-        // Получаем данные стихии
-        const { data: elementData, error: elementError } = await supabase
-          .from('elements')
-          .select('*')
-          .eq('id', 'f2e4e168-e5a9-4a9c-b829-3e2c1a8a0b1a') // Water element ID
-          .single();
-
-        if (elementError) {
-          console.warn('Supabase element error:', elementError);
-          console.log('Using fallback data for element');
-          setElement(fallbackWaterElement);
-          return;
-        }
-
-        // Получаем миссии для стихии
-        const { data: missionsData, error: missionsError } = await supabase
-          .from('missions')
-          .select('*')
-          .eq('element_id', elementData.id)
-          .order('order');
-
-        if (missionsError) {
-          console.warn('Supabase missions error:', missionsError);
-          console.log('Using fallback missions');
-          setElement({
-            ...elementData,
-            missions: fallbackWaterElement.missions
-          });
-          return;
-        }
-
-        setElement({
-          ...elementData,
-          missions: missionsData || fallbackWaterElement.missions
-        });
-
-      } catch (err) {
-        console.error('Error fetching element:', err);
-        console.log('Using fallback data due to error');
+    // Используем только статические данные (без Supabase)
+    const loadElement = () => {
+      setLoading(true);
+      
+      if (elementId === 'water' || elementId === 'f2e4e168-e5a9-4a9c-b829-3e2c1a8a0b1a') {
         setElement(fallbackWaterElement);
-      } finally {
-        setLoading(false);
+      } else {
+        setError('Эта стихия пока недоступна');
       }
+      
+      setLoading(false);
     };
 
-    if (elementId === 'water') {
-      fetchElement();
-    } else {
-      setError('Эта стихия пока недоступна');
-      setLoading(false);
-    }
+    loadElement();
   }, [elementId]);
 
   if (loading) {
