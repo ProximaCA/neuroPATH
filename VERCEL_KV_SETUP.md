@@ -1,5 +1,7 @@
 # Настройка Vercel KV для neuroPATH
 
+## ⚠️ ВАЖНО: Приложение НЕ РАБОТАЕТ без настроенного Vercel KV!
+
 ## 1. Создание Vercel KV хранилища
 
 1. Зайдите в [Vercel Dashboard](https://vercel.com/dashboard)
@@ -19,7 +21,14 @@
    - `KV_REST_API_TOKEN`
    - `KV_REST_API_READ_ONLY_TOKEN`
 
-## 3. Локальная разработка
+## 3. Передеплой проекта
+
+После подключения KV обязательно передеплойте проект:
+1. Зайдите в Deployments в Vercel Dashboard
+2. Нажмите на три точки у последнего деплоя
+3. Выберите "Redeploy"
+
+## 4. Локальная разработка
 
 Для локальной разработки создайте файл `.env.local` в папке `nextjs-starter`:
 
@@ -31,17 +40,6 @@ KV_REST_API_READ_ONLY_TOKEN="..."
 ```
 
 Значения можно взять из Vercel Dashboard → Storage → ваша KV → .env.local tab
-
-## 4. Деплой
-
-1. Сделайте коммит изменений:
-```bash
-git add .
-git commit -m "feat: migrate from Supabase to Vercel KV"
-git push
-```
-
-2. Vercel автоматически задеплоит проект с новыми настройками
 
 ## 5. Проверка
 
@@ -62,9 +60,10 @@ git push
 
 ## Troubleshooting
 
-### Ошибка подключения
-- Проверьте, что переменные окружения правильно настроены
-- Убедитесь, что KV создан в том же аккаунте Vercel
+### Ошибка "Missing required environment variables"
+- Убедитесь, что KV создан и подключен к проекту
+- Проверьте, что переменные окружения добавлены в Vercel
+- Передеплойте проект после подключения KV
 
 ### Данные не сохраняются
 - Проверьте логи в Vercel Dashboard → Functions

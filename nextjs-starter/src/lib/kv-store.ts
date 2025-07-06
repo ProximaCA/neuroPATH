@@ -1,13 +1,4 @@
-import { createClient } from 'redis';
-
-// Создаём Redis клиент
-const redis = createClient({ 
-  url: process.env.REDIS_URL || "redis://default:T2t2JroPHNpvxaULSt3yUtPGj2ha3C3N@redis-14772.c15.us-east-1-4.ec2.redns.redis-cloud.com:14772" 
-});
-
-// Подключаемся к Redis
-redis.on('error', err => console.error('Redis Client Error', err));
-await redis.connect();
+import { kv } from '@vercel/kv';
 
 // Типы данных (те же, что были для Supabase)
 export interface UserData {
@@ -70,8 +61,7 @@ const KEYS = {
 // Функции для работы с пользователями
 export async function getUser(id: number): Promise<UserData | null> {
   try {
-    const data = await redis.get(KEYS.user(id));
-    return data ? JSON.parse(data) : null;
+    return await kv.get<UserData>(KEYS.user(id));
   } catch (error) {
     console.error('Error getting user:', error);
     return null;
@@ -80,7 +70,7 @@ export async function getUser(id: number): Promise<UserData | null> {
 
 export async function createUser(userData: UserData): Promise<UserData> {
   try {
-    await redis.set(KEYS.user(userData.id), JSON.stringify(userData));
+    await kv.set(KEYS.user(userData.id), userData);
     return userData;
   } catch (error) {
     console.error('Error creating user:', error);
@@ -99,7 +89,7 @@ export async function updateUser(id: number, updates: Partial<UserData>): Promis
       updated_at: new Date().toISOString(),
     };
     
-    await redis.set(KEYS.user(id), JSON.stringify(updatedUser));
+    await kv.set(KEYS.user(id), updatedUser);
     return updatedUser;
   } catch (error) {
     console.error('Error updating user:', error);
@@ -110,8 +100,8 @@ export async function updateUser(id: number, updates: Partial<UserData>): Promis
 // Функции для работы с прогрессом миссий
 export async function getUserProgress(userId: number): Promise<MissionProgress[]> {
   try {
-    const progress = await redis.get(KEYS.userProgress(userId));
-    return progress ? JSON.parse(progress) : [];
+    const progress = await kv.get<MissionProgress[]>(KEYS.userProgress(userId));
+    return progress || [];
   } catch (error) {
     console.error('Error getting user progress:', error);
     return [];
@@ -152,7 +142,7 @@ export async function updateMissionProgress(
       };
     }
     
-    await redis.set(KEYS.userProgress(userId), JSON.stringify(allProgress));
+    await kv.set(KEYS.userProgress(userId), allProgress);
     return allProgress.find(p => p.mission_id === missionId) || null;
   } catch (error) {
     console.error('Error updating mission progress:', error);
@@ -163,8 +153,8 @@ export async function updateMissionProgress(
 // Функции для работы с артефактами
 export async function getUserArtifacts(userId: number): Promise<UserArtifact[]> {
   try {
-    const artifacts = await redis.get(KEYS.userArtifacts(userId));
-    return artifacts ? JSON.parse(artifacts) : [];
+    const artifacts = await kv.get<UserArtifact[]>(KEYS.userArtifacts(userId));
+    return artifacts || [];
   } catch (error) {
     console.error('Error getting user artifacts:', error);
     return [];
@@ -185,7 +175,7 @@ export async function addUserArtifact(userId: number, artifactId: string, source
     // Проверяем, нет ли уже такого артефакта
     if (!artifacts.some(a => a.artifact_id === artifactId)) {
       artifacts.push(newArtifact);
-      await redis.set(KEYS.userArtifacts(userId), JSON.stringify(artifacts));
+      await kv.set(KEYS.userArtifacts(userId), artifacts);
     }
     
     return newArtifact;
@@ -198,8 +188,8 @@ export async function addUserArtifact(userId: number, artifactId: string, source
 // Функции для работы с рефералами
 export async function getUserReferrals(userId: number): Promise<Referral[]> {
   try {
-    const referrals = await redis.get(KEYS.userReferrals(userId));
-    return referrals ? JSON.parse(referrals) : [];
+    const referrals = await kv.get<Referral[]>(KEYS.userReferrals(userId));
+    return referrals || [];
   } catch (error) {
     console.error('Error getting user referrals:', error);
     return [];
@@ -209,7 +199,7 @@ export async function getUserReferrals(userId: number): Promise<Referral[]> {
 export async function addReferral(referrerId: number, referredId: number): Promise<boolean> {
   try {
     // Проверяем, нет ли уже такого реферала
-    const existingRef = await redis.get(KEYS.referralByUser(referrerId, referredId));
+    const existingRef = await kv.get(KEYS.referralByUser(referrerId, referredId));
     if (existingRef) return false;
     
     const referral: Referral = {
@@ -220,17 +210,17 @@ export async function addReferral(referrerId: number, referredId: number): Promi
     };
     
     // Сохраняем реферал для обоих пользователей
-    await redis.set(KEYS.referralByUser(referrerId, referredId), JSON.stringify(referral));
+    await kv.set(KEYS.referralByUser(referrerId, referredId), referral);
     
     // Добавляем в список рефералов реферера
     const referrerRefs = await getUserReferrals(referrerId);
     referrerRefs.push(referral);
-    await redis.set(KEYS.userReferrals(referrerId), JSON.stringify(referrerRefs));
+    await kv.set(KEYS.userReferrals(referrerId), referrerRefs);
     
     // Добавляем в список рефералов реферала (кто его пригласил)
     const referredRefs = await getUserReferrals(referredId);
     referredRefs.push(referral);
-    await redis.set(KEYS.userReferrals(referredId), JSON.stringify(referredRefs));
+    await kv.set(KEYS.userReferrals(referredId), referredRefs);
     
     return true;
   } catch (error) {
