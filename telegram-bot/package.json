@@ -17,9 +17,10 @@
   "author": "BROK3",
   "license": "MIT",
   "dependencies": {
-    "grammy": "^1.21.1",
+    "@supabase/supabase-js": "^2.50.1",
     "dotenv": "^16.3.1",
-    "@supabase/supabase-js": "^2.50.1"
+    "grammy": "^1.21.1",
+    "ioredis": "^5.6.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
@@ -27,4 +28,4 @@
   "engines": {
     "node": ">=18.0.0"
   }
-} 
+}

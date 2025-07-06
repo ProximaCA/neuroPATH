@@ -2,6 +2,7 @@
 require('dotenv').config();
 
 const { Bot, InlineKeyboard } = require('grammy');
+const Redis = require('ioredis');
 
 // Замените на ваш токен бота от @BotFather
 const BOT_TOKEN = process.env.BOT_TOKEN || 'YOUR_BOT_TOKEN_HERE';
@@ -10,6 +11,8 @@ const BOT_TOKEN = process.env.BOT_TOKEN || 'YOUR_BOT_TOKEN_HERE';
 const WEB_APP_URL = process.env.WEB_APP_URL || 'http://localhost:3000';
 
 const bot = new Bot(BOT_TOKEN);
+
+const redis = new Redis(process.env.REDIS_URL); // REDIS_URL = KV_URL из Vercel
 
 // Отладочный вывод
 console.log('🤖 Запуск Telegram бота...');
@@ -42,7 +45,7 @@ bot.command('start', async (ctx) => {
 • Освоить медитативные практики
 • Собрать коллекцию артефактов
 • Отслеживать свой прогресс
-
+Команды - /help
 Нажмите кнопку ниже, чтобы начать путешествие:`,
       { reply_markup: keyboard }
     );
@@ -160,4 +163,15 @@ process.once('SIGTERM', () => {
   console.log('🛑 Остановка бота...');
   bot.stop();
   process.exit(0);
-}); 
+});
+
+// Пример: сохранить прогресс пользователя
+async function saveUserProgress(userId, progress) {
+  await redis.set(`progress:${userId}`, JSON.stringify(progress));
+}
+
+// Пример: получить прогресс пользователя
+async function getUserProgress(userId) {
+  const data = await redis.get(`progress:${userId}`);
+  return data ? JSON.parse(data) : null;
+} 

@@ -6,6 +6,10 @@ DROP TABLE IF EXISTS artifacts CASCADE;
 DROP TABLE IF EXISTS missions CASCADE;
 DROP TABLE IF EXISTS elements CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS user_referrals CASCADE;
+DROP TABLE IF EXISTS friends CASCADE;
+DROP TABLE IF EXISTS light_transactions CASCADE;
+DROP TABLE IF EXISTS user_sessions CASCADE;
 
 -- User Table: Enhanced for Telegram Web App
 create table users (
@@ -304,6 +308,74 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Function to check daily light sending limit (50 per day)
+CREATE OR REPLACE FUNCTION get_daily_light_sent(
+  p_user_id bigint
+)
+RETURNS integer AS $$
+DECLARE
+  daily_sent integer;
+BEGIN
+  SELECT COALESCE(SUM(amount), 0) INTO daily_sent
+  FROM light_transactions
+  WHERE from_user_id = p_user_id
+    AND transaction_type = 'friend_gift'
+    AND created_at >= CURRENT_DATE;
+    
+  RETURN daily_sent;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to send light with daily limit check
+CREATE OR REPLACE FUNCTION send_light_to_friend(
+  p_sender_id bigint,
+  p_receiver_id bigint,
+  p_amount integer
+)
+RETURNS json AS $$
+DECLARE
+  sender_balance integer;
+  daily_sent integer;
+  max_daily_limit integer := 50;
+  result json;
+BEGIN
+  -- Get sender's current balance
+  SELECT light_balance INTO sender_balance FROM users WHERE id = p_sender_id;
+  
+  -- Check if sender has enough light
+  IF sender_balance < p_amount THEN
+    RETURN json_build_object('success', false, 'error', 'Недостаточно света');
+  END IF;
+  
+  -- Check daily limit
+  SELECT get_daily_light_sent(p_sender_id) INTO daily_sent;
+  
+  IF daily_sent + p_amount > max_daily_limit THEN
+    RETURN json_build_object(
+      'success', false, 
+      'error', 'Превышен дневной лимит отправки света',
+      'daily_sent', daily_sent,
+      'daily_limit', max_daily_limit
+    );
+  END IF;
+  
+  -- Transfer light
+  UPDATE users SET light_balance = light_balance - p_amount WHERE id = p_sender_id;
+  UPDATE users SET light_balance = light_balance + p_amount WHERE id = p_receiver_id;
+  
+  -- Record transaction
+  INSERT INTO light_transactions (from_user_id, to_user_id, amount, transaction_type, description)
+  VALUES (p_sender_id, p_receiver_id, p_amount, 'friend_gift', 'Подарок света от друга');
+  
+  RETURN json_build_object(
+    'success', true,
+    'daily_sent', daily_sent + p_amount,
+    'daily_limit', max_daily_limit,
+    'remaining_today', max_daily_limit - (daily_sent + p_amount)
+  );
+END;
+$$ LANGUAGE plpgsql;
+
 -- ---
 -- POLICIES & RLS
 -- ---
@@ -340,4 +412,5 @@ CREATE POLICY "Users can read own artifacts" ON public.user_artifacts FOR SELECT
 CREATE POLICY "Users can read own referrals" ON public.user_referrals FOR SELECT USING (auth.uid()::text = referrer_user_id::text OR auth.uid()::text = referred_user_id::text);
 CREATE POLICY "Users can insert referrals" ON public.user_referrals FOR INSERT WITH CHECK (auth.uid()::text = referrer_user_id::text OR auth.uid()::text = referred_user_id::text);
 CREATE POLICY "Users can read own transactions" ON public.light_transactions FOR SELECT USING (auth.uid()::text = to_user_id::text OR auth.uid()::text = from_user_id::text);
+CREATE POLICY "Users can insert transactions" ON public.light_transactions FOR INSERT WITH CHECK (auth.uid()::text = from_user_id::text OR from_user_id IS NULL);
 CREATE POLICY "Users can read own sessions" ON public.user_sessions FOR SELECT USING (auth.uid()::text = user_id::text);
