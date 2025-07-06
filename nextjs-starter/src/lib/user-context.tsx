@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useTelegramWebApp, TelegramUser } from './telegram';
 import { supabase } from './supabase';
+import { ReferralNotification } from '../components/ReferralNotification';
 
 // Enhanced user data from database
 export interface UserData {
@@ -76,6 +77,9 @@ interface UserContextType {
   hasArtifact: (artifactId: string) => boolean;
   canAfford: (amount: number) => boolean;
   getNextMissionCost: (currentMissionId: string) => number;
+  
+  // Notification state
+  showReferralNotification: (amount: number, friendName: string, friendAvatar?: string, type?: 'received' | 'sent') => void;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -86,6 +90,20 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [missionProgress, setMissionProgress] = useState<MissionProgress[]>([]);
   const [userArtifacts, setUserArtifacts] = useState<UserArtifact[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Notification state
+  const [notificationData, setNotificationData] = useState<{
+    show: boolean;
+    amount: number;
+    friendName: string;
+    friendAvatar?: string;
+    type: 'received' | 'sent';
+  }>({
+    show: false,
+    amount: 0,
+    friendName: '',
+    type: 'received'
+  });
 
   // Initialize or update user in database
   const initializeUser = async (tgUser: TelegramUser) => {
@@ -395,15 +413,65 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Send light to another user
+  // Show referral notification
+  const showReferralNotification = (amount: number, friendName: string, friendAvatar?: string, type: 'received' | 'sent' = 'received') => {
+    setNotificationData({
+      show: true,
+      amount,
+      friendName,
+      friendAvatar,
+      type
+    });
+  };
+
+  // Handle referral system with notification
+  const handleReferral = async (referrerId: number): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      const { data, error } = await supabase
+        .rpc('handle_referral', {
+          p_referrer_id: referrerId,
+          p_referred_id: user.id
+        });
+
+      if (error) throw error;
+
+      if (data) {
+        // Get referrer info for notification
+        const { data: referrerData } = await supabase
+          .from('users')
+          .select('first_name, last_name, photo_url')
+          .eq('id', referrerId)
+          .single();
+
+        // Show notification
+        if (referrerData) {
+          const referrerName = `${referrerData.first_name} ${referrerData.last_name || ''}`.trim();
+          showReferralNotification(100, referrerName, referrerData.photo_url, 'received');
+        }
+
+        // Refresh user data to get updated balance
+        await refreshUserData();
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Error handling referral:', error);
+      return false;
+    }
+  };
+
+  // Enhanced sendLight with notification
   const sendLight = async (toUserId: number, amount: number): Promise<boolean> => {
     if (!user || user.light_balance < amount) return false;
 
     try {
-      // Get current receiver balance
+      // Get current receiver data for notification
       const { data: receiverData, error: receiverFetchError } = await supabase
         .from('users')
-        .select('light_balance')
+        .select('light_balance, first_name, last_name, photo_url')
         .eq('id', toUserId)
         .single();
 
@@ -447,35 +515,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
       // Update local state
       setUser(prev => prev ? { ...prev, light_balance: prev.light_balance - amount } : null);
 
+      // Show notification
+      const receiverName = `${receiverData.first_name} ${receiverData.last_name || ''}`.trim();
+      showReferralNotification(amount, receiverName, receiverData.photo_url, 'sent');
+
       return true;
     } catch (error) {
       console.error('Error sending light:', error);
-      return false;
-    }
-  };
-
-  // Handle referral system
-  const handleReferral = async (referrerId: number): Promise<boolean> => {
-    if (!user) return false;
-
-    try {
-      const { data, error } = await supabase
-        .rpc('handle_referral', {
-          p_referrer_id: referrerId,
-          p_referred_id: user.id
-        });
-
-      if (error) throw error;
-
-      if (data) {
-        // Refresh user data to get updated balance
-        await refreshUserData();
-        return true;
-      }
-
-      return false;
-    } catch (error) {
-      console.error('Error handling referral:', error);
       return false;
     }
   };
@@ -549,11 +595,20 @@ export function UserProvider({ children }: { children: ReactNode }) {
     hasArtifact,
     canAfford,
     getNextMissionCost,
+    showReferralNotification,
   };
 
   return (
     <UserContext.Provider value={value}>
       {children}
+      <ReferralNotification
+        show={notificationData.show}
+        amount={notificationData.amount}
+        friendName={notificationData.friendName}
+        friendAvatar={notificationData.friendAvatar}
+        type={notificationData.type}
+        onClose={() => setNotificationData(prev => ({ ...prev, show: false }))}
+      />
     </UserContext.Provider>
   );
 }

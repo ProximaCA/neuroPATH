@@ -127,28 +127,43 @@ export default function ProfilePage() {
       if (!user) return;
 
       try {
-        // В реальном приложении здесь будет запрос к базе данных
-        // для получения списка приглашенных друзей
+        // Получаем рефералы пользователя
         const { data: referrals, error } = await supabase
           .from('user_referrals')
           .select(`
             referred_user_id,
-            created_at,
-            users!referred_user_id(
-              id,
-              first_name,
-              last_name,
-              username,
-              photo_url
-            )
+            created_at
           `)
           .eq('referrer_user_id', user.id);
 
-        if (error) {
+        if (referrals && !error) {
+          // Получаем данные пользователей отдельно
+          const userIds = referrals.map(r => r.referred_user_id);
+          if (userIds.length > 0) {
+            const { data: userData, error: userError } = await supabase
+              .from('users')
+              .select('id, first_name, last_name, username, photo_url')
+              .in('id', userIds);
+
+            if (userData && !userError) {
+              // Объединяем данные
+              const enrichedReferrals = referrals.map(referral => ({
+                ...referral,
+                users: userData.find(u => u.id === referral.referred_user_id)
+              })).filter(r => r.users); // Только те, для которых найден пользователь
+
+              console.log('Loaded referrals:', enrichedReferrals);
+              setInvitedFriends(enrichedReferrals);
+            } else {
+              console.warn('Failed to load user data:', userError);
+              setInvitedFriends([]);
+            }
+          } else {
+            setInvitedFriends([]);
+          }
+        } else {
           console.warn('Failed to load referrals:', error);
           setInvitedFriends([]);
-        } else {
-          setInvitedFriends(referrals || []);
         }
       } catch (error) {
         console.error('Error loading invited friends:', error);
