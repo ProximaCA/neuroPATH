@@ -337,6 +337,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
     if (!user) return;
 
     try {
+      // Получаем текущее значение time_spent_seconds для миссии
+      const current = missionProgress.find(p => p.mission_id === missionId);
+      const prevTime = current?.time_spent_seconds || 0;
+      const newTime = progress.time_spent_seconds ?? prevTime;
+      const deltaSeconds = newTime - prevTime;
+      const deltaMinutes = Math.floor(deltaSeconds / 60);
+
       const { data, error } = await supabase
         .from('mission_progress')
         .update({
@@ -355,26 +362,28 @@ export function UserProvider({ children }: { children: ReactNode }) {
         prev.map(p => p.mission_id === missionId ? data : p)
       );
 
-      // Update user's total meditation time if time was spent
-      if (progress.time_spent_seconds) {
-        const additionalMinutes = Math.floor(progress.time_spent_seconds / 60);
-        if (additionalMinutes > 0) {
-          await supabase
-            .from('users')
-            .update({
-              total_meditation_minutes: user.total_meditation_minutes + additionalMinutes,
-              last_activity: new Date().toISOString(),
-            })
-            .eq('id', user.id);
+      // Update user's total meditation time только на дельту
+      if (deltaMinutes > 0) {
+        await supabase
+          .from('users')
+          .update({
+            total_meditation_minutes: user.total_meditation_minutes + deltaMinutes,
+            last_activity: new Date().toISOString(),
+          })
+          .eq('id', user.id);
 
-          setUser(prev => prev ? {
-            ...prev,
-            total_meditation_minutes: prev.total_meditation_minutes + additionalMinutes
-          } : null);
-        }
+        setUser(prev => prev ? {
+          ...prev,
+          total_meditation_minutes: prev.total_meditation_minutes + deltaMinutes
+        } : null);
       }
     } catch (error) {
       console.error('Error updating progress:', error);
+      // Показываем ошибку пользователю (можно через alert или state)
+      if (typeof window !== 'undefined') {
+        const errMsg = (error && typeof error === 'object' && 'message' in error) ? (error as any).message : String(error);
+        alert('Ошибка обновления прогресса: ' + errMsg);
+      }
     }
   };
 
