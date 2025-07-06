@@ -16,9 +16,77 @@ import {
 } from "@once-ui-system/core";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { supabase } from "../../lib/supabase";
-import { useUser } from "../../lib/user-context";
+import { Navigation } from "../../components/Navigation";
+import { useUser } from "../../lib/user-context-kv";
 import { triggerHaptic } from "../../lib/telegram";
+
+// Статические данные элементов (вместо загрузки из БД)
+const ELEMENTS_DATA = [
+  {
+    id: "f2e4e168-e5a9-4a9c-b829-3e2c1a8a0b1a",
+    name: "Вода",
+    description: "Принятие и понимание своих эмоций",
+    color_code: "#00A9FF",
+    image_url: "/images/water-element.jpg",
+    unlock_level: 1,
+    total_missions: 3,
+    created_at: new Date().toISOString(),
+    emoji: "🌊",
+    isAvailable: true,
+    missions: 3,
+    progress: 0,
+    color: "#00A9FF",
+    image: "/images/elements/water_card.png"
+  },
+  {
+    id: "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+    name: "Огонь",
+    description: "Трансформация и страсть",
+    color_code: "#FF4500",
+    image_url: "/images/fire-element.jpg",
+    unlock_level: 5,
+    total_missions: 3,
+    created_at: new Date().toISOString(),
+    emoji: "🔥",
+    isAvailable: false,
+    missions: 4,
+    progress: 0,
+    color: "#FF4500",
+    image: "/images/elements/fire_card.png"
+  },
+  {
+    id: "b2c3d4e5-f6a7-8901-2345-678901bcdef0",
+    name: "Воздух",
+    description: "Ясность мысли и легкость",
+    color_code: "#87CEEB",
+    image_url: "/images/air-element.jpg",
+    unlock_level: 10,
+    total_missions: 3,
+    created_at: new Date().toISOString(),
+    emoji: "🌪️",
+    isAvailable: false,
+    missions: 5,
+    progress: 0,
+    color: "#87CEEB",
+    image: "/images/elements/air_card.png"
+  },
+  {
+    id: "c3d4e5f6-a7b8-9012-3456-789012cdef01",
+    name: "Земля",
+    description: "Стабильность и заземление",
+    color_code: "#8B4513",
+    image_url: "/images/earth-element.jpg",
+    unlock_level: 15,
+    total_missions: 3,
+    created_at: new Date().toISOString(),
+    emoji: "🌍",
+    isAvailable: false,
+    missions: 4,
+    progress: 0,
+    color: "#8B4513",
+    image: "/images/elements/earth_card.png"
+  }
+];
 
 interface Element {
   id: string;
@@ -26,108 +94,26 @@ interface Element {
   description: string;
   color_code: string;
   image_url: string;
+  unlock_level: number;
+  total_missions: number;
+  created_at: string;
+  emoji: string;
+  isAvailable: boolean;
+  missions: number;
+  progress: number;
+  color: string;
   image: string;
 }
 
-const staticElements = [
-  {
-    id: "water",
-    name: "Вода",
-    emoji: "🌊",
-    description: "Эмоциональная глубина, очищение.",
-    color: "#00A9FF",
-    isAvailable: true,
-    missions: 3,
-    progress: 0,
-    image: "/images/elements/water_card.png",
-  },
-  {
-    id: "fire", 
-    name: "Огонь",
-    emoji: "🔥",
-    description: "Пробуждение воли, сила действия.",
-    color: "#FF4500",
-    isAvailable: false,
-    missions: 4,
-    progress: 0,
-    image: "/images/elements/fire_card.png",
-  },
-  {
-    id: "air",
-    name: "Воздух", 
-    emoji: "🌪️",
-    description: "Ментальная лёгкость, прояснение ума.",
-    color: "#87CEEB",
-    isAvailable: false,
-    missions: 5,
-    progress: 0,
-    image: "/images/elements/air_card.png",
-  },
-  {
-    id: "earth",
-    name: "Земля",
-    emoji: "🌍", 
-    description: "Стабилизация, укоренение, телесная ясность.",
-    color: "#8B4513",
-    isAvailable: false,
-    missions: 4,
-    progress: 0,
-    image: "/images/elements/earth_card.png",
-  },
-];
-
 export default function Home() {
-  const { user, isLoading: userLoading, missionProgress, getMissionProgress } = useUser();
-  const [waterElement, setWaterElement] = useState<Element | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, isLoading } = useUser();
+  const [elements, setElements] = useState<Element[]>(ELEMENTS_DATA);
+  const [hoveredElement, setHoveredElement] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchWaterElement = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('elements')
-          .select('*')
-          .eq('id', 'f2e4e168-e5a9-4a9c-b829-3e2c1a8a0b1a')
-          .single();
-
-        if (error) {
-          console.error('Supabase error:', error);
-        } else {
-          setWaterElement(data);
-        }
-      } catch (err) {
-        console.error('Error fetching water element:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchWaterElement();
-  }, []);
-
-  // Рассчитываем прогресс для Water элемента
-  const calculateWaterProgress = () => {
-    if (!missionProgress.length) return 0;
-    const waterMissions = missionProgress.filter(p => 
-      ['d9e3f8a0-cb3a-4c9c-8f1a-6d5b7a8e9c0d', 'a7b2c1d0-e8f9-4a3b-9c8d-7e6f5a4b3c2d', 'b3c4d5e6-f7a8-4b9c-8d1e-2f3a4b5c6d7e'].includes(p.mission_id)
-    );
-    const totalProgress = waterMissions.reduce((sum, mission) => sum + mission.progress_percentage, 0);
-    return Math.round(totalProgress / 3); // Average progress across 3 missions
+  const handleElementClick = (elementId: string, isUnlocked: boolean) => {
+    triggerHaptic('impact', 'light');
   };
-
-  // Объединяем реальные данные со static данными
-  const elements = staticElements.map(element => {
-    if (element.id === 'water' && waterElement) {
-      return {
-        ...element,
-        name: waterElement.name,
-        description: waterElement.description,
-        color: waterElement.color_code,
-        progress: calculateWaterProgress(),
-      };
-    }
-    return element;
-  });
 
   return (
     <Column fillWidth center padding="l" style={{ minHeight: "100vh" }}>
@@ -291,7 +277,7 @@ export default function Home() {
           🌊 Начни свое путешествие со стихии Воды
         </Text>
         <Text variant="code-default-xs" onBackground="neutral-weak" align="center">
-          {loading || userLoading ? 'Загрузка данных...' : 'Остальные стихии откроются по мере прохождения'}
+          {loading ? 'Загрузка данных...' : 'Остальные стихии откроются по мере прохождения'}
         </Text>
         {user && (
           <Row gap="8" align="center" marginTop="s">

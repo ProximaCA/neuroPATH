@@ -17,7 +17,7 @@ import Link from "next/link";
 import { useEffect, useState, useCallback } from "react";
 import { MeditationPlayer } from "../../../../../components/MusicPlayer";
 import { MissionProgressTracker } from "../../../../../components/MissionProgressTracker";
-import { useUser } from "../../../../../lib/user-context";
+import { useUser } from "../../../../../lib/user-context-kv";
 import { triggerHaptic } from "../../../../../lib/telegram";
 import { Navigation } from "../../../../../components/Navigation";
 

@@ -18,8 +18,8 @@ import {
 } from "@once-ui-system/core";
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { supabase } from "../../lib/supabase";
-import { useUser } from "../../lib/user-context";
+import * as kvStore from "../../lib/kv-store";
+import { useUser } from "../../lib/user-context-kv";
 import { triggerHaptic } from "../../lib/telegram";
 import { Navigation } from "../../components/Navigation";
 
@@ -144,22 +144,15 @@ export default function ProfilePage() {
       if (!user) return;
 
       try {
-        // Получаем всех друзей (взаимосвязи)
-        const { data: friendsData, error } = await supabase
-          .from('user_referrals')
-          .select(`
-            referrer_user_id,
-            referred_user_id,
-            created_at
-          `)
-          .or(`referrer_user_id.eq.${user.id},referred_user_id.eq.${user.id}`);
-
-        if (friendsData && !error) {
+        // Получаем всех друзей из KV store
+        const referrals = await kvStore.getUserReferrals(user.id);
+        
+        if (referrals && referrals.length > 0) {
           // Находим всех друзей - тех кого пригласил + того кто пригласил
           const allFriendIds = new Set<number>();
           const friendRelations: FriendRelation[] = [];
 
-          friendsData.forEach(relation => {
+          referrals.forEach(relation => {
             if (relation.referrer_user_id === user.id) {
               // Пользователь пригласил кого-то
               allFriendIds.add(relation.referred_user_id);
@@ -183,29 +176,30 @@ export default function ProfilePage() {
 
           // Получаем данные всех друзей
           if (allFriendIds.size > 0) {
-            const { data: userData, error: userError } = await supabase
-              .from('users')
-              .select('id, first_name, last_name, username, photo_url')
-              .in('id', Array.from(allFriendIds));
-
-            if (userData && !userError) {
+            const userData = await Promise.all(
+              Array.from(allFriendIds).map(id => kvStore.getUser(id))
+            );
+            
+            const validUsers = userData.filter(u => u !== null);
+            
+            if (validUsers.length > 0) {
               // Объединяем данные с информацией о пользователях
               const enrichedFriends = friendRelations.map(relation => ({
                 ...relation,
-                users: userData.find(u => u.id === relation.friend_id)
+                users: validUsers.find(u => u?.id === relation.friend_id) || null
               })).filter(r => r.users);
 
               console.log('Loaded all friends:', enrichedFriends);
               setInvitedFriends(enrichedFriends);
             } else {
-              console.warn('Failed to load user data:', userError);
+              console.warn('No valid user data found');
               setInvitedFriends([]);
             }
           } else {
             setInvitedFriends([]);
           }
         } else {
-          console.warn('Failed to load friends:', error);
+          console.log('No referrals found');
           setInvitedFriends([]);
         }
       } catch (error) {

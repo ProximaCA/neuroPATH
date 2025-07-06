@@ -11,7 +11,7 @@ import {
   Badge,
   Heading
 } from '@once-ui-system/core';
-import { useUser } from '../lib/user-context';
+import { useUser } from '../lib/user-context-kv';
 import { triggerHaptic } from '../lib/telegram';
 
 interface MissionProgressTrackerProps {

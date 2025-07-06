@@ -3,7 +3,7 @@
 import { BorderStyle, ChartMode, ChartVariant, DataThemeProvider, IconProvider, NeutralColor, ScalingSize, Schemes, SolidStyle, SolidType, SurfaceStyle, Theme, ThemeProvider, ToastProvider, TransitionStyle } from "@once-ui-system/core";
 import { style, dataStyle } from "../resources/once-ui.config";
 import { iconLibrary } from "../resources/icons";
-import { UserProvider } from "../lib/user-context";
+import { UserProvider } from "../lib/user-context-kv";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
