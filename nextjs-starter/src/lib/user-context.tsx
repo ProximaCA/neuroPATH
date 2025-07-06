@@ -69,11 +69,13 @@ interface UserContextType {
   completeMission: (missionId: string) => Promise<any>;
   refreshUserData: () => Promise<void>;
   sendLight: (toUserId: number, amount: number) => Promise<boolean>;
+  handleReferral: (referrerId: number) => Promise<boolean>;
   
   // UI helpers
   getMissionProgress: (missionId: string) => MissionProgress | null;
   hasArtifact: (artifactId: string) => boolean;
   canAfford: (amount: number) => boolean;
+  getNextMissionCost: (currentMissionId: string) => number;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -452,6 +454,32 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Handle referral system
+  const handleReferral = async (referrerId: number): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      const { data, error } = await supabase
+        .rpc('handle_referral', {
+          p_referrer_id: referrerId,
+          p_referred_id: user.id
+        });
+
+      if (error) throw error;
+
+      if (data) {
+        // Refresh user data to get updated balance
+        await refreshUserData();
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Error handling referral:', error);
+      return false;
+    }
+  };
+
   // Helper functions
   const getMissionProgress = (missionId: string): MissionProgress | null => {
     return missionProgress.find(p => p.mission_id === missionId) || null;
@@ -465,6 +493,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
     return user ? user.light_balance >= amount : false;
   };
 
+  const getNextMissionCost = (currentMissionId: string): number => {
+    // All missions after the first one cost 10 light
+    return 10;
+  };
+
   // Initialize user when Telegram user is available
   useEffect(() => {
     console.log('UserProvider useEffect triggered', { telegramUser, tgLoading });
@@ -476,6 +509,22 @@ export function UserProvider({ children }: { children: ReactNode }) {
         loadUserData(telegramUser.id).finally(() => {
           console.log('User data loaded, setting isLoading to false');
           setIsLoading(false);
+          
+          // Check for referral parameters in URL
+          if (typeof window !== 'undefined') {
+            const urlParams = new URLSearchParams(window.location.search);
+            const referrerId = urlParams.get('referrer');
+            if (referrerId && referrerId !== telegramUser.id.toString()) {
+              console.log('Processing referral from:', referrerId);
+              handleReferral(parseInt(referrerId)).then((success) => {
+                if (success) {
+                  console.log('Referral processed successfully');
+                } else {
+                  console.log('Referral processing failed or already exists');
+                }
+              });
+            }
+          }
         });
       });
     } else if (!tgLoading) {
@@ -495,9 +544,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
     completeMission,
     refreshUserData,
     sendLight,
+    handleReferral,
     getMissionProgress,
     hasArtifact,
     canAfford,
+    getNextMissionCost,
   };
 
   return (

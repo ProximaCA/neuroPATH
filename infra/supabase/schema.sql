@@ -105,6 +105,16 @@ create table user_artifacts (
   unique(user_id, artifact_id)
 );
 
+-- User Referrals Table: Track invited friends
+create table user_referrals (
+  id uuid primary key default gen_random_uuid(),
+  referrer_user_id bigint references users(id) not null,
+  referred_user_id bigint references users(id) not null,
+  referral_bonus_given boolean default false,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  unique(referrer_user_id, referred_user_id)
+);
+
 -- Friends Table: Social features
 create table friends (
   id uuid primary key default gen_random_uuid(),
@@ -151,6 +161,8 @@ CREATE INDEX idx_mission_progress_status ON mission_progress(status);
 CREATE INDEX idx_user_artifacts_user_id ON user_artifacts(user_id);
 CREATE INDEX idx_friends_user_id ON friends(user_id);
 CREATE INDEX idx_light_transactions_user_id ON light_transactions(to_user_id);
+CREATE INDEX idx_user_referrals_referrer ON user_referrals(referrer_user_id);
+CREATE INDEX idx_user_referrals_referred ON user_referrals(referred_user_id);
 
 -- Create function to update user level based on XP
 CREATE OR REPLACE FUNCTION update_user_level()
@@ -178,10 +190,21 @@ RETURNS json AS $$
 DECLARE
   mission_record missions%ROWTYPE;
   artifact_record artifacts%ROWTYPE;
+  user_record users%ROWTYPE;
+  next_mission_record missions%ROWTYPE;
   result json;
 BEGIN
   -- Get mission details
   SELECT * INTO mission_record FROM missions WHERE id = p_mission_id;
+  SELECT * INTO user_record FROM users WHERE id = p_user_id;
+  
+  -- Check if mission is already completed
+  IF EXISTS (
+    SELECT 1 FROM mission_progress 
+    WHERE user_id = p_user_id AND mission_id = p_mission_id AND status = 'completed'
+  ) THEN
+    RETURN json_build_object('error', 'Mission already completed');
+  END IF;
   
   -- Update mission progress
   UPDATE mission_progress 
@@ -192,17 +215,18 @@ BEGIN
     last_activity = timezone('utc'::text, now())
   WHERE user_id = p_user_id AND mission_id = p_mission_id;
   
-  -- Update user stats
+  -- Update user stats (+10 СВЕТА за каждый урок)
   UPDATE users 
   SET 
     total_missions_completed = total_missions_completed + 1,
-    light_balance = light_balance + mission_record.light_reward,
+    total_meditation_minutes = total_meditation_minutes + mission_record.duration_minutes,
+    light_balance = light_balance + 10, -- Fixed reward of 10 light per mission
     last_activity = timezone('utc'::text, now())
   WHERE id = p_user_id;
   
   -- Add light transaction record
   INSERT INTO light_transactions (to_user_id, amount, transaction_type, description)
-  VALUES (p_user_id, mission_record.light_reward, 'mission_reward', 
+  VALUES (p_user_id, 10, 'mission_reward', 
           'Награда за завершение миссии: ' || mission_record.name);
   
   -- Check if there's an artifact to award
@@ -215,10 +239,19 @@ BEGIN
     ON CONFLICT (user_id, artifact_id) DO NOTHING;
   END IF;
   
+  -- Get next mission info (next missions cost 10 light)
+  SELECT * INTO next_mission_record FROM missions 
+  WHERE element_id = mission_record.element_id 
+    AND "order" = mission_record."order" + 1;
+  
   -- Return completion data
   SELECT json_build_object(
-    'light_earned', mission_record.light_reward,
-    'xp_earned', mission_record.xp_reward,
+    'light_earned', 10,
+    'meditation_minutes', mission_record.duration_minutes,
+    'next_mission_cost', CASE 
+      WHEN next_mission_record.id IS NOT NULL THEN 10 
+      ELSE 0 
+    END,
     'artifact_earned', CASE WHEN artifact_record.id IS NOT NULL THEN 
       json_build_object(
         'id', artifact_record.id,
@@ -229,6 +262,45 @@ BEGIN
   ) INTO result;
   
   RETURN result;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create function to handle referral system
+CREATE OR REPLACE FUNCTION handle_referral(
+  p_referrer_id bigint,
+  p_referred_id bigint
+)
+RETURNS boolean AS $$
+BEGIN
+  -- Check if referral already exists
+  IF EXISTS (
+    SELECT 1 FROM user_referrals 
+    WHERE referrer_user_id = p_referrer_id AND referred_user_id = p_referred_id
+  ) THEN
+    RETURN false;
+  END IF;
+  
+  -- Create referral record
+  INSERT INTO user_referrals (referrer_user_id, referred_user_id)
+  VALUES (p_referrer_id, p_referred_id);
+  
+  -- Give bonus to referrer (+100 СВЕТА)
+  UPDATE users 
+  SET light_balance = light_balance + 100
+  WHERE id = p_referrer_id;
+  
+  -- Give bonus to referred user (+100 СВЕТА)
+  UPDATE users 
+  SET light_balance = light_balance + 100
+  WHERE id = p_referred_id;
+  
+  -- Add transaction records
+  INSERT INTO light_transactions (to_user_id, amount, transaction_type, description)
+  VALUES 
+    (p_referrer_id, 100, 'referral_bonus', 'Бонус за приглашение друга'),
+    (p_referred_id, 100, 'referral_bonus', 'Бонус за регистрацию по приглашению');
+  
+  RETURN true;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -244,6 +316,7 @@ ALTER TABLE mission_progress ENABLE ROW LEVEL SECURITY;
 ALTER TABLE practices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE artifacts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_artifacts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_referrals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE friends ENABLE ROW LEVEL SECURITY;
 ALTER TABLE light_transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_sessions ENABLE ROW LEVEL SECURITY;
@@ -264,5 +337,7 @@ CREATE POLICY "Users can update own progress" ON public.mission_progress FOR UPD
 CREATE POLICY "Users can insert own progress" ON public.mission_progress FOR INSERT WITH CHECK (auth.uid()::text = user_id::text);
 
 CREATE POLICY "Users can read own artifacts" ON public.user_artifacts FOR SELECT USING (auth.uid()::text = user_id::text);
+CREATE POLICY "Users can read own referrals" ON public.user_referrals FOR SELECT USING (auth.uid()::text = referrer_user_id::text OR auth.uid()::text = referred_user_id::text);
+CREATE POLICY "Users can insert referrals" ON public.user_referrals FOR INSERT WITH CHECK (auth.uid()::text = referrer_user_id::text OR auth.uid()::text = referred_user_id::text);
 CREATE POLICY "Users can read own transactions" ON public.light_transactions FOR SELECT USING (auth.uid()::text = to_user_id::text OR auth.uid()::text = from_user_id::text);
 CREATE POLICY "Users can read own sessions" ON public.user_sessions FOR SELECT USING (auth.uid()::text = user_id::text);

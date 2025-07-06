@@ -434,20 +434,58 @@ export default function ProfilePage() {
             </Card>
           </Row>
 
-          {/* Referral System */}
-          <Card radius="l" padding="l" background="brand-alpha-weak" border="brand-alpha-medium">
-            <Column gap="m">
-              <Row gap="s" align="center">
-                <Text variant="display-strong-l">🎁</Text>
-                <Column gap="xs" fillWidth>
-                  <Heading variant="heading-strong-m" style={{ color: "#00A9FF" }}>
-                    Пригласи друзей
-                  </Heading>
-                  <Text variant="body-default-s" onBackground="neutral-weak">
-                    За каждого приглашенного друга +100 СВЕТА
-                  </Text>
-                </Column>
-              </Row>
+          {/* Tab Navigation */}
+          <Row gap="s" fillWidth>
+            <Button
+              variant={activeTab === 'artifacts' ? 'primary' : 'secondary'}
+              onClick={() => setActiveTab('artifacts')}
+              fillWidth
+              style={{
+                backgroundColor: activeTab === 'artifacts' ? '#00A9FF' : undefined,
+                borderColor: activeTab === 'artifacts' ? '#00A9FF' : undefined
+              }}
+            >
+              ⭐ Артефакты
+            </Button>
+            <Button
+              variant={activeTab === 'friends' ? 'primary' : 'secondary'}
+              onClick={() => setActiveTab('friends')}
+              fillWidth
+              style={{
+                backgroundColor: activeTab === 'friends' ? '#00A9FF' : undefined,
+                borderColor: activeTab === 'friends' ? '#00A9FF' : undefined
+              }}
+            >
+              👥 Друзья
+            </Button>
+            <Button
+              variant={activeTab === 'stats' ? 'primary' : 'secondary'}
+              onClick={() => setActiveTab('stats')}
+              fillWidth
+              style={{
+                backgroundColor: activeTab === 'stats' ? '#00A9FF' : undefined,
+                borderColor: activeTab === 'stats' ? '#00A9FF' : undefined
+              }}
+            >
+              📊 Статистика
+            </Button>
+          </Row>
+
+          {/* Tab Content */}
+          {activeTab === 'friends' && (
+            <Card radius="l" padding="l" background="brand-alpha-weak" border="brand-alpha-medium">
+              <Column gap="m">
+                <Row gap="s" align="center">
+                  <Text variant="display-strong-l">🎁</Text>
+                  <Column gap="xs" fillWidth>
+                    <Heading variant="heading-strong-m" style={{ color: "#00A9FF" }}>
+                      Пригласи друзей
+                    </Heading>
+                    <Text variant="body-default-s" onBackground="neutral-weak">
+                      За каждого приглашенного друга +100 СВЕТА
+                    </Text>
+                  </Column>
+                </Row>
 
               <Card radius="m" padding="m" background="neutral-alpha-weak">
                 <Column gap="s">
@@ -547,60 +585,147 @@ export default function ProfilePage() {
               )}
             </Column>
           </Card>
+          )}
 
-          {/* Artifacts Section */}
-          <Card radius="l" padding="l" background="neutral-alpha-weak">
-            <Column gap="m">
-              <Row gap="xs" align="center">
-                ⭐
-                <Text variant="heading-strong-s" style={{ color: "#FFD700" }}>
-                  Артефакты
-                </Text>
-              </Row>
-              
-              {userArtifacts.length > 0 ? (
-                <Row gap="m" wrap>
-                  {userArtifacts.map((userArtifact) => (
-                    <Card 
-                      key={userArtifact.id}
-                      padding="m" 
-                      border="neutral-alpha-weak" 
-                      radius="m"
-                      style={{ minWidth: "120px" }}
-                      align="center"
-                    >
-                      <Column gap="s" align="center">
-                        <Avatar 
-                          src={userArtifact.artifact.icon_url}
-                          size="l"
-                        />
-                        <Text variant="label-default-s" align="center">
-                          {userArtifact.artifact.name}
+          {/* Artifacts Tab */}
+          {activeTab === 'artifacts' && (
+            <Card radius="l" padding="l" background="neutral-alpha-weak">
+              <Column gap="m">
+                <Row gap="xs" align="center">
+                  <Text style={{ fontSize: "1.5rem" }}>⭐</Text>
+                  <Text variant="heading-strong-s" style={{ color: "#FFD700" }}>
+                    Артефакты ({userArtifacts.length})
+                  </Text>
+                </Row>
+                
+                {userArtifacts.length > 0 ? (
+                  <Row gap="m" wrap>
+                    {userArtifacts.map((userArtifact) => (
+                      <Card 
+                        key={userArtifact.id}
+                        padding="m" 
+                        border="neutral-alpha-weak" 
+                        radius="m"
+                        style={{ minWidth: "120px" }}
+                        align="center"
+                      >
+                        <Column gap="s" align="center">
+                          <Avatar 
+                            src={userArtifact.artifact.icon_url}
+                            size="l"
+                          />
+                          <Text variant="label-default-s" align="center">
+                            {userArtifact.artifact.name}
+                          </Text>
+                          <Badge style={{ 
+                            backgroundColor: userArtifact.artifact.rarity === 'legendary' ? '#FFD700' : 
+                                           userArtifact.artifact.rarity === 'epic' ? '#9C27B0' : '#00A9FF',
+                            color: 'white',
+                            fontSize: '0.75rem'
+                          }}>
+                            {userArtifact.artifact.light_value} СВЕТА
+                          </Badge>
+                        </Column>
+                      </Card>
+                    ))}
+                  </Row>
+                ) : (
+                  <Card padding="l" border="neutral-alpha-weak" radius="l" style={{ opacity: 0.6 }}>
+                    <Column gap="s" align="center">
+                      <Text style={{ fontSize: "3rem" }}>🔒</Text>
+                      <Text variant="body-default-s" onBackground="neutral-weak" align="center">
+                        Пройди больше миссий, чтобы получить новые артефакты
+                      </Text>
+                    </Column>
+                  </Card>
+                )}
+              </Column>
+            </Card>
+          )}
+
+          {/* Stats Tab */}
+          {activeTab === 'stats' && (
+            <Card radius="l" padding="l" background="neutral-alpha-weak">
+              <Column gap="m">
+                <Row gap="xs" align="center">
+                  <Text style={{ fontSize: "1.5rem" }}>📊</Text>
+                  <Text variant="heading-strong-s" style={{ color: "#00A9FF" }}>
+                    Прогресс по стихиям
+                  </Text>
+                </Row>
+                
+                <Column gap="m">
+                  {Object.entries(calculateElementProgress()).map(([element, progress]) => {
+                    const elementMap: Record<string, { name: string; color: string }> = {
+                      water: { name: '🌊 Вода', color: '#00A9FF' },
+                      fire: { name: '🔥 Огонь', color: '#FF6B47' },
+                      air: { name: '💨 Воздух', color: '#87CEEB' },
+                      earth: { name: '🌍 Земля', color: '#8B4513' }
+                    };
+                    
+                    const elementData = elementMap[element] || { name: element, color: '#00A9FF' };
+
+                    return (
+                      <Card key={element} padding="m" background="neutral-alpha-weak" radius="m">
+                        <Column gap="s">
+                          <Row gap="s" align="center" style={{ justifyContent: 'space-between' }}>
+                            <Text variant="label-default-m">{elementData.name}</Text>
+                            <Text variant="label-default-s" style={{ color: elementData.color }}>
+                              {progress}%
+                            </Text>
+                          </Row>
+                          <div 
+                            style={{
+                              width: '100%',
+                              height: '8px',
+                              backgroundColor: 'var(--neutral-alpha-weak)',
+                              borderRadius: '4px',
+                              overflow: 'hidden'
+                            }}
+                          >
+                            <div 
+                              style={{
+                                width: `${progress}%`,
+                                height: '100%',
+                                backgroundColor: elementData.color,
+                                borderRadius: '4px',
+                                transition: 'width 0.3s ease'
+                              }}
+                            />
+                          </div>
+                        </Column>
+                      </Card>
+                    );
+                  })}
+                </Column>
+
+                {/* Mission Progress Details */}
+                <Column gap="s">
+                  <Text variant="heading-strong-s">Детали прогресса</Text>
+                  <Row gap="m">
+                    <Card padding="s" background="brand-alpha-weak" radius="m" fillWidth align="center">
+                      <Column gap="xs" align="center">
+                        <Text style={{ fontSize: "1.5rem" }}>🎯</Text>
+                        <Text variant="label-default-s">Завершено миссий</Text>
+                        <Text variant="heading-strong-s" style={{ color: "#00A9FF" }}>
+                          {missionProgress.filter(m => m.status === 'completed').length}/{missionProgress.length}
                         </Text>
-                        <Badge style={{ 
-                          backgroundColor: userArtifact.artifact.rarity === 'legendary' ? '#FFD700' : 
-                                         userArtifact.artifact.rarity === 'epic' ? '#9C27B0' : '#00A9FF',
-                          color: 'white',
-                          fontSize: '0.75rem'
-                        }}>
-                          {userArtifact.artifact.light_value} СВЕТА
-                        </Badge>
                       </Column>
                     </Card>
-                  ))}
-                </Row>
-              ) : (
-                <Card padding="l" border="neutral-alpha-weak" radius="l" style={{ opacity: 0.6 }}>
-                  <Column gap="s" align="center">
-                    <Text style={{ fontSize: "3rem" }}>🔒</Text>
-                    <Text variant="body-default-s" onBackground="neutral-weak" align="center">
-                      Пройди больше миссий, чтобы получить новые артефакты
-                    </Text>
-                  </Column>
-                </Card>
-              )}
-            </Column>
-          </Card>
+                    <Card padding="s" background="brand-alpha-weak" radius="m" fillWidth align="center">
+                      <Column gap="xs" align="center">
+                        <Text style={{ fontSize: "1.5rem" }}>⚡</Text>
+                        <Text variant="label-default-s">Текущий стрик</Text>
+                        <Text variant="heading-strong-s" style={{ color: "#00A9FF" }}>
+                          {user.streak_days} дней
+                        </Text>
+                      </Column>
+                    </Card>
+                  </Row>
+                </Column>
+              </Column>
+            </Card>
+          )}
 
           {/* Quick Actions */}
           <Column gap="m">

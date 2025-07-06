@@ -388,30 +388,60 @@ export default function MissionPage() {
                 Миссия завершена!
               </Heading>
               <Text variant="body-default-l" onBackground="neutral-weak" align="center">
-                Вы успешно прошли первую медитацию стихии Воды
+                Вы успешно прошли первую медитацию стихии Воды и получили награды!
               </Text>
             </Column>
 
-            {/* Artifact Earned */}
-            <Card radius="l" padding="l" background="brand-alpha-weak" border="brand-alpha-medium">
-              <Column gap="m" align="center">
-                <Avatar 
-                  src="/images/artifacts/pearl.jpg"
-                  size="xl"
-                />
-                <Column gap="xs" align="center">
-                  <Row gap="xs" align="center">
-                    ⭐
+            {/* Rewards Earned */}
+            <Column gap="m" fillWidth>
+              {/* Light Reward */}
+              <Card radius="l" padding="l" background="brand-alpha-weak" border="brand-alpha-medium">
+                <Row gap="m" align="center">
+                  <Text style={{ fontSize: "2.5rem" }}>✨</Text>
+                  <Column gap="xs" fillWidth>
                     <Text variant="heading-strong-m" style={{ color: "#00A9FF" }}>
-                      Жемчужина Чуткости
+                      +10 СВЕТА получено!
                     </Text>
-                  </Row>
-                  <Text variant="body-default-s" onBackground="neutral-weak" align="center">
-                    Получена за завершение первой медитации
+                    <Text variant="body-default-s" onBackground="neutral-weak">
+                      Награда за завершение медитации
+                    </Text>
+                  </Column>
+                </Row>
+              </Card>
+
+              {/* Artifact Reward */}
+              <Card radius="l" padding="l" background="brand-alpha-weak" border="brand-alpha-medium">
+                <Row gap="m" align="center">
+                  <Avatar 
+                    src="/images/artifacts/pearl.jpg"
+                    size="l"
+                  />
+                  <Column gap="xs" fillWidth>
+                    <Row gap="xs" align="center">
+                      ⭐
+                      <Text variant="heading-strong-m" style={{ color: "#00A9FF" }}>
+                        Жемчужина Чуткости
+                      </Text>
+                    </Row>
+                    <Text variant="body-default-s" onBackground="neutral-weak">
+                      Артефакт за завершение первой медитации стихии Воды
+                    </Text>
+                  </Column>
+                </Row>
+              </Card>
+
+              {/* Next Mission Info */}
+              <Card radius="l" padding="l" background="neutral-alpha-weak">
+                <Column gap="s">
+                  <Text variant="heading-strong-s" style={{ color: "#00A9FF" }}>
+                    Следующая миссия
+                  </Text>
+                  <Text variant="body-default-s" onBackground="neutral-weak">
+                    Стоимость: 10 СВЕТА • Убедитесь что у вас достаточно света для продолжения
                   </Text>
                 </Column>
-              </Column>
-            </Card>
+              </Card>
+            </Column>
 
             <Column gap="m" fillWidth>
               <Link href="/elements/water">
@@ -482,14 +512,6 @@ export default function MissionPage() {
                 overflow: "hidden"
               }}
             >
-              <div
-                style={{
-                  width: `${(progress.currentStep / progress.totalSteps) * 100}%`,
-                  height: "100%",
-                  backgroundColor: "#00A9FF",
-                  transition: "width 0.5s ease"
-                }}
-              />
             </div>
           </Column>
 
@@ -540,7 +562,16 @@ export default function MissionPage() {
                 animation: progress.isPlaying ? "pulse 3s infinite" : "none"
               }}
             >
-              🌊
+              <img
+                src="/images/water-element.jpg"
+                alt="Вода"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  borderRadius: "50%"
+                }}
+              />
             </div>
             
             <Text 

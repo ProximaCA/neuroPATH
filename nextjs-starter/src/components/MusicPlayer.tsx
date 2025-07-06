@@ -473,22 +473,7 @@ const MeditationPlayer: React.FC<MeditationPlayerProps> = ({
             </Button>
           )}
           
-          <IconButton
-            variant="primary"
-            icon={isPlaying ? "pause" : "play"}
-            size="l"
-            tooltip={isPlaying ? "Пауза" : "Воспроизвести"}
-            onClick={onPlayPause}
-            style={{
-              backgroundColor: "#00A9FF",
-              borderColor: "#00A9FF",
-              width: "72px",
-              height: "72px",
-              borderRadius: "50%",
-              boxShadow: "0 4px 20px rgba(0, 169, 255, 0.3)"
-            }}
-          />
-          
+       
           {canComplete && (
             <div style={{ width: "48px", height: "48px" }} />
           )}
