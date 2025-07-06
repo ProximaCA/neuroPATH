@@ -54,6 +54,21 @@ interface Friend {
   last_active: string;
 }
 
+interface FriendRelation {
+  referrer_user_id: number;
+  referred_user_id: number;
+  created_at: string;
+  friend_id: number;
+  relation_type: 'invited' | 'invited_by';
+  users: {
+    id: number;
+    first_name: string;
+    last_name?: string;
+    username?: string;
+    photo_url?: string;
+  } | null;
+}
+
 const mockUser: User = {
   id: "user-1",
   telegram_id: 123456789,
@@ -113,47 +128,75 @@ export default function ProfilePage() {
     isLoading, 
     sendLight, 
     canAfford,
-    refreshUserData 
+    refreshUserData,
+    getDailyLightSent
   } = useUser();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [activeTab, setActiveTab] = useState<'artifacts' | 'friends' | 'stats'>('artifacts');
   const [sendingLight, setSendingLight] = useState<string | null>(null);
   const [copiedReferral, setCopiedReferral] = useState(false);
   const [invitedFriends, setInvitedFriends] = useState<any[]>([]);
+  const [dailyLimitInfo, setDailyLimitInfo] = useState<{ dailySent: number; dailyLimit: number; remainingToday: number; canSend: boolean } | null>(null);
 
   // Load invited friends from Supabase or use fallback
   useEffect(() => {
-    const loadInvitedFriends = async () => {
+    const loadAllFriends = async () => {
       if (!user) return;
 
       try {
-        // Получаем рефералы пользователя
-        const { data: referrals, error } = await supabase
+        // Получаем всех друзей (взаимосвязи)
+        const { data: friendsData, error } = await supabase
           .from('user_referrals')
           .select(`
+            referrer_user_id,
             referred_user_id,
             created_at
           `)
-          .eq('referrer_user_id', user.id);
+          .or(`referrer_user_id.eq.${user.id},referred_user_id.eq.${user.id}`);
 
-        if (referrals && !error) {
-          // Получаем данные пользователей отдельно
-          const userIds = referrals.map(r => r.referred_user_id);
-          if (userIds.length > 0) {
+        if (friendsData && !error) {
+          // Находим всех друзей - тех кого пригласил + того кто пригласил
+          const allFriendIds = new Set<number>();
+          const friendRelations: FriendRelation[] = [];
+
+          friendsData.forEach(relation => {
+            if (relation.referrer_user_id === user.id) {
+              // Пользователь пригласил кого-то
+              allFriendIds.add(relation.referred_user_id);
+              friendRelations.push({
+                ...relation,
+                friend_id: relation.referred_user_id,
+                relation_type: 'invited', // Пригласил
+                users: null
+              });
+            } else if (relation.referred_user_id === user.id) {
+              // Пользователя кто-то пригласил
+              allFriendIds.add(relation.referrer_user_id);
+              friendRelations.push({
+                ...relation,
+                friend_id: relation.referrer_user_id,
+                relation_type: 'invited_by', // Пригласили
+                users: null
+              });
+            }
+          });
+
+          // Получаем данные всех друзей
+          if (allFriendIds.size > 0) {
             const { data: userData, error: userError } = await supabase
               .from('users')
               .select('id, first_name, last_name, username, photo_url')
-              .in('id', userIds);
+              .in('id', Array.from(allFriendIds));
 
             if (userData && !userError) {
-              // Объединяем данные
-              const enrichedReferrals = referrals.map(referral => ({
-                ...referral,
-                users: userData.find(u => u.id === referral.referred_user_id)
-              })).filter(r => r.users); // Только те, для которых найден пользователь
+              // Объединяем данные с информацией о пользователях
+              const enrichedFriends = friendRelations.map(relation => ({
+                ...relation,
+                users: userData.find(u => u.id === relation.friend_id)
+              })).filter(r => r.users);
 
-              console.log('Loaded referrals:', enrichedReferrals);
-              setInvitedFriends(enrichedReferrals);
+              console.log('Loaded all friends:', enrichedFriends);
+              setInvitedFriends(enrichedFriends);
             } else {
               console.warn('Failed to load user data:', userError);
               setInvitedFriends([]);
@@ -162,17 +205,33 @@ export default function ProfilePage() {
             setInvitedFriends([]);
           }
         } else {
-          console.warn('Failed to load referrals:', error);
+          console.warn('Failed to load friends:', error);
           setInvitedFriends([]);
         }
       } catch (error) {
-        console.error('Error loading invited friends:', error);
+        console.error('Error loading friends:', error);
         setInvitedFriends([]);
       }
     };
 
-    loadInvitedFriends();
+    loadAllFriends();
   }, [user]);
+
+  // Load daily limit info
+  useEffect(() => {
+    const loadDailyLimit = async () => {
+      if (!user) return;
+      
+      try {
+        const limitInfo = await getDailyLightSent();
+        setDailyLimitInfo(limitInfo);
+      } catch (error) {
+        console.error('Error loading daily limit:', error);
+      }
+    };
+
+    loadDailyLimit();
+  }, [user, getDailyLightSent]);
 
   const handleSendLight = async (friendId: number, amount: number = 10) => {
     if (!user || !canAfford(amount)) {
@@ -181,14 +240,26 @@ export default function ProfilePage() {
     }
 
     setSendingLight(friendId.toString());
-    const success = await sendLight(friendId, amount);
+    const result = await sendLight(friendId, amount);
     
-    if (success) {
+    if (result.success) {
       triggerHaptic('notification', 'success');
+      // Update daily limit info
+      if (result.limitInfo) {
+        setDailyLimitInfo(result.limitInfo);
+      }
       // Refresh user data to update balance
       await refreshUserData();
     } else {
       triggerHaptic('notification', 'error');
+      // Show error message if needed
+      if (result.error) {
+        console.error('Send light error:', result.error);
+      }
+      // Update limit info even on failure to show current status
+      if (result.limitInfo) {
+        setDailyLimitInfo(result.limitInfo);
+      }
     }
     
     setSendingLight(null);
@@ -534,34 +605,85 @@ export default function ProfilePage() {
                 </Column>
               </Card>
 
-              {/* Invited Friends */}
+              {/* Daily Light Limit Info */}
+              {dailyLimitInfo && (
+                <Card radius="m" padding="m" background="neutral-alpha-weak">
+                  <Column gap="xs">
+                    <Row gap="s" align="center" style={{ justifyContent: "space-between" }}>
+                      <Text variant="label-default-s" onBackground="neutral-weak">
+                        💫 Дневной лимит отправки света:
+                      </Text>
+                      <Badge style={{ 
+                        backgroundColor: dailyLimitInfo.canSend ? "#4CAF50" : "#FF9800", 
+                        color: "white" 
+                      }}>
+                        {dailyLimitInfo.remainingToday} из {dailyLimitInfo.dailyLimit}
+                      </Badge>
+                    </Row>
+                    <div style={{
+                      width: "100%",
+                      height: "4px",
+                      backgroundColor: "var(--neutral-alpha-weak)",
+                      borderRadius: "2px",
+                      overflow: "hidden"
+                    }}>
+                      <div style={{
+                        width: `${(dailyLimitInfo.dailySent / dailyLimitInfo.dailyLimit) * 100}%`,
+                        height: "100%",
+                        backgroundColor: dailyLimitInfo.canSend ? "#4CAF50" : "#FF9800",
+                        transition: "width 0.3s ease"
+                      }} />
+                    </div>
+                    <Text variant="body-default-xs" onBackground="neutral-weak">
+                      {dailyLimitInfo.canSend 
+                        ? `Вы можете отправить еще ${dailyLimitInfo.remainingToday} света сегодня`
+                        : 'Дневной лимит исчерпан. Обновится завтра.'
+                      }
+                    </Text>
+                  </Column>
+                </Card>
+              )}
+
+              {/* All Friends */}
               {invitedFriends.length > 0 ? (
                 <Column gap="s">
                   <Text variant="heading-strong-s">
-                    Приглашенные друзья ({invitedFriends.length})
+                    Все друзья ({invitedFriends.length})
                   </Text>
                   <Column gap="xs">
-                    {invitedFriends.map((referral) => {
-                      const friend = referral.users;
+                    {invitedFriends.map((friendRelation) => {
+                      const friend = friendRelation.users;
                       const isSending = sendingLight === friend.id.toString();
+                      const isInvited = friendRelation.relation_type === 'invited';
                       
                       return (
-                        <Row key={referral.referred_user_id} gap="m" align="center" padding="s">
+                        <Row key={`${friendRelation.referrer_user_id}-${friendRelation.referred_user_id}`} gap="m" align="center" padding="s">
                           <Avatar 
                             src={friend.photo_url || "/images/default-avatar.jpg"} 
                             size="s" 
                           />
                           <Column gap="xs" fillWidth>
-                            <Text variant="label-default-m">
-                              {friend.first_name} {friend.last_name || ''}
-                            </Text>
+                            <Row gap="xs" align="center">
+                              <Text variant="label-default-m">
+                                {friend.first_name} {friend.last_name || ''}
+                              </Text>
+                              {isInvited ? (
+                                <Badge style={{ backgroundColor: "#4CAF50", color: "white", fontSize: "0.6rem" }}>
+                                  Пригласили
+                                </Badge>
+                              ) : (
+                                <Badge style={{ backgroundColor: "#FF9800", color: "white", fontSize: "0.6rem" }}>
+                                  Пригласил вас
+                                </Badge>
+                              )}
+                            </Row>
                             {friend.username && (
                               <Text variant="body-default-xs" onBackground="neutral-weak">
                                 @{friend.username}
                               </Text>
                             )}
                             <Text variant="body-default-xs" onBackground="neutral-weak">
-                              Присоединился {new Date(referral.created_at).toLocaleDateString('ru-RU')}
+                              {isInvited ? 'Присоединился' : 'Пригласил вас'} {new Date(friendRelation.created_at).toLocaleDateString('ru-RU')}
                             </Text>
                           </Column>
                           
@@ -570,17 +692,22 @@ export default function ProfilePage() {
                               variant="secondary"
                               size="s"
                               onClick={() => handleSendLight(friend.id, 10)}
-                              disabled={isSending || !canAfford(10)}
+                              disabled={isSending || !canAfford(10) || (dailyLimitInfo?.canSend === false)}
                               style={{
                                 backgroundColor: isSending ? "#4CAF50" : undefined,
                                 minWidth: "80px"
                               }}
                             >
-                              {isSending ? "..." : canAfford(10) ? "💫 10" : "🔒"}
+                              {isSending ? "..." : 
+                               !canAfford(10) ? "🔒" :
+                               dailyLimitInfo?.canSend === false ? "📵" :
+                               "💫 10"}
                             </Button>
-                            <Badge style={{ backgroundColor: "#4CAF50", color: "white" }}>
-                              +100 за приглашение
-                            </Badge>
+                            {isInvited && (
+                              <Badge style={{ backgroundColor: "#4CAF50", color: "white" }}>
+                                +100 за приглашение
+                              </Badge>
+                            )}
                           </Column>
                         </Row>
                       );

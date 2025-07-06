@@ -55,6 +55,13 @@ export interface UserArtifact {
   };
 }
 
+interface DailyLimitInfo {
+  dailySent: number;
+  dailyLimit: number;
+  remainingToday: number;
+  canSend: boolean;
+}
+
 interface UserContextType {
   user: UserData | null;
   telegramUser: TelegramUser | null;
@@ -69,7 +76,7 @@ interface UserContextType {
   updateUserProgress: (missionId: string, progress: Partial<MissionProgress>) => Promise<void>;
   completeMission: (missionId: string) => Promise<any>;
   refreshUserData: () => Promise<void>;
-  sendLight: (toUserId: number, amount: number) => Promise<boolean>;
+  sendLight: (toUserId: number, amount: number) => Promise<{ success: boolean; error?: string; limitInfo?: DailyLimitInfo }>;
   handleReferral: (referrerId: number) => Promise<boolean>;
   
   // UI helpers
@@ -77,6 +84,7 @@ interface UserContextType {
   hasArtifact: (artifactId: string) => boolean;
   canAfford: (amount: number) => boolean;
   getNextMissionCost: (currentMissionId: string) => number;
+  getDailyLightSent: () => Promise<DailyLimitInfo>;
   
   // Notification state
   showReferralNotification: (amount: number, friendName: string, friendAvatar?: string, type?: 'received' | 'sent') => void;
@@ -463,66 +471,95 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Enhanced sendLight with notification
-  const sendLight = async (toUserId: number, amount: number): Promise<boolean> => {
-    if (!user || user.light_balance < amount) return false;
+  // Get daily light sending info
+  const getDailyLightSent = async (): Promise<DailyLimitInfo> => {
+    if (!user) {
+      return { dailySent: 0, dailyLimit: 50, remainingToday: 50, canSend: false };
+    }
 
     try {
-      // Get current receiver data for notification
-      const { data: receiverData, error: receiverFetchError } = await supabase
-        .from('users')
-        .select('light_balance, first_name, last_name, photo_url')
-        .eq('id', toUserId)
-        .single();
-
-      if (receiverFetchError) throw receiverFetchError;
-
-      // Create transaction record
-      const { error: transactionError } = await supabase
-        .from('light_transactions')
-        .insert({
-          from_user_id: user.id,
-          to_user_id: toUserId,
-          amount,
-          transaction_type: 'friend_gift',
-          description: `Подарок СВЕТ от ${user.first_name}`,
+      const { data, error } = await supabase
+        .rpc('get_daily_light_sent', {
+          p_user_id: user.id
         });
 
-      if (transactionError) throw transactionError;
+      if (error) throw error;
 
-      // Update sender balance
-      const { error: senderError } = await supabase
+      const dailySent = data || 0;
+      const dailyLimit = 50;
+      const remainingToday = Math.max(0, dailyLimit - dailySent);
+
+      return {
+        dailySent,
+        dailyLimit,
+        remainingToday,
+        canSend: remainingToday > 0
+      };
+    } catch (error) {
+      console.error('Error getting daily light sent:', error);
+      return { dailySent: 0, dailyLimit: 50, remainingToday: 50, canSend: true };
+    }
+  };
+
+  // Enhanced sendLight with daily limit check
+  const sendLight = async (toUserId: number, amount: number): Promise<{ success: boolean; error?: string; limitInfo?: DailyLimitInfo }> => {
+    if (!user) {
+      return { success: false, error: 'Пользователь не авторизован' };
+    }
+
+    try {
+      // Use database function with daily limit check
+      const { data, error } = await supabase
+        .rpc('send_light_to_friend', {
+          p_sender_id: user.id,
+          p_receiver_id: toUserId,
+          p_amount: amount
+        });
+
+      if (error) throw error;
+
+      if (!data.success) {
+        const limitInfo = data.daily_sent !== undefined ? {
+          dailySent: data.daily_sent,
+          dailyLimit: data.daily_limit,
+          remainingToday: data.daily_limit - data.daily_sent,
+          canSend: (data.daily_limit - data.daily_sent) > 0
+        } : undefined;
+
+        return { 
+          success: false, 
+          error: data.error,
+          limitInfo
+        };
+      }
+
+      // Get receiver data for notification
+      const { data: receiverData } = await supabase
         .from('users')
-        .update({
-          light_balance: user.light_balance - amount,
-          last_activity: new Date().toISOString(),
-        })
-        .eq('id', user.id);
-
-      if (senderError) throw senderError;
-
-      // Update receiver balance
-      const { error: receiverError } = await supabase
-        .from('users')
-        .update({
-          light_balance: receiverData.light_balance + amount,
-          last_activity: new Date().toISOString(),
-        })
-        .eq('id', toUserId);
-
-      if (receiverError) throw receiverError;
+        .select('first_name, last_name, photo_url')
+        .eq('id', toUserId)
+        .single();
 
       // Update local state
       setUser(prev => prev ? { ...prev, light_balance: prev.light_balance - amount } : null);
 
       // Show notification
-      const receiverName = `${receiverData.first_name} ${receiverData.last_name || ''}`.trim();
-      showReferralNotification(amount, receiverName, receiverData.photo_url, 'sent');
+      if (receiverData) {
+        const receiverName = `${receiverData.first_name} ${receiverData.last_name || ''}`.trim();
+        showReferralNotification(amount, receiverName, receiverData.photo_url, 'sent');
+      }
 
-      return true;
+      const limitInfo: DailyLimitInfo = {
+        dailySent: data.daily_sent,
+        dailyLimit: data.daily_limit,
+        remainingToday: data.remaining_today,
+        canSend: data.remaining_today > 0
+      };
+
+      return { success: true, limitInfo };
     } catch (error) {
       console.error('Error sending light:', error);
-      return false;
+      return { success: false, error: 'Ошибка при отправке света' };
     }
   };
 
@@ -595,6 +632,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     hasArtifact,
     canAfford,
     getNextMissionCost,
+    getDailyLightSent,
     showReferralNotification,
   };
 
