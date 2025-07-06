@@ -16,7 +16,14 @@ const STATIC_DATA = {
       rarity: 'common',
       light_value: 10,
     },
-  },
+  } as Record<string, {
+    id: string;
+    name: string;
+    description: string;
+    icon_url: string;
+    rarity: string;
+    light_value: number;
+  }>,
 };
 
 // Расширяем тип UserArtifact для включения данных артефакта
