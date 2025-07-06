@@ -1,4 +1,45 @@
-import { kv } from '@vercel/kv';
+import { Redis } from '@upstash/redis';
+
+// Создаём клиент Upstash Redis
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || '',
+  token: process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || '',
+});
+
+// Если нет credentials, используем fallback
+const isRedisConfigured = !!(process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL);
+
+// In-memory storage для разработки/fallback
+const memoryStore = new Map<string, any>();
+
+// Обёртка для Redis с fallback
+const storage = {
+  async get<T>(key: string): Promise<T | null> {
+    if (!isRedisConfigured) {
+      console.warn('Redis not configured, using in-memory storage');
+      return memoryStore.get(key) || null;
+    }
+    try {
+      return await redis.get<T>(key);
+    } catch (error) {
+      console.error('Redis get error:', error);
+      return null;
+    }
+  },
+  
+  async set(key: string, value: any): Promise<void> {
+    if (!isRedisConfigured) {
+      console.warn('Redis not configured, using in-memory storage');
+      memoryStore.set(key, value);
+      return;
+    }
+    try {
+      await redis.set(key, value);
+    } catch (error) {
+      console.error('Redis set error:', error);
+    }
+  }
+};
 
 // Типы данных (те же, что были для Supabase)
 export interface UserData {
@@ -61,7 +102,7 @@ const KEYS = {
 // Функции для работы с пользователями
 export async function getUser(id: number): Promise<UserData | null> {
   try {
-    return await kv.get<UserData>(KEYS.user(id));
+    return await storage.get<UserData>(KEYS.user(id));
   } catch (error) {
     console.error('Error getting user:', error);
     return null;
@@ -70,7 +111,7 @@ export async function getUser(id: number): Promise<UserData | null> {
 
 export async function createUser(userData: UserData): Promise<UserData> {
   try {
-    await kv.set(KEYS.user(userData.id), userData);
+    await storage.set(KEYS.user(userData.id), userData);
     return userData;
   } catch (error) {
     console.error('Error creating user:', error);
@@ -89,7 +130,7 @@ export async function updateUser(id: number, updates: Partial<UserData>): Promis
       updated_at: new Date().toISOString(),
     };
     
-    await kv.set(KEYS.user(id), updatedUser);
+    await storage.set(KEYS.user(id), updatedUser);
     return updatedUser;
   } catch (error) {
     console.error('Error updating user:', error);
@@ -100,7 +141,7 @@ export async function updateUser(id: number, updates: Partial<UserData>): Promis
 // Функции для работы с прогрессом миссий
 export async function getUserProgress(userId: number): Promise<MissionProgress[]> {
   try {
-    const progress = await kv.get<MissionProgress[]>(KEYS.userProgress(userId));
+    const progress = await storage.get<MissionProgress[]>(KEYS.userProgress(userId));
     return progress || [];
   } catch (error) {
     console.error('Error getting user progress:', error);
@@ -142,7 +183,7 @@ export async function updateMissionProgress(
       };
     }
     
-    await kv.set(KEYS.userProgress(userId), allProgress);
+    await storage.set(KEYS.userProgress(userId), allProgress);
     return allProgress.find(p => p.mission_id === missionId) || null;
   } catch (error) {
     console.error('Error updating mission progress:', error);
@@ -153,7 +194,7 @@ export async function updateMissionProgress(
 // Функции для работы с артефактами
 export async function getUserArtifacts(userId: number): Promise<UserArtifact[]> {
   try {
-    const artifacts = await kv.get<UserArtifact[]>(KEYS.userArtifacts(userId));
+    const artifacts = await storage.get<UserArtifact[]>(KEYS.userArtifacts(userId));
     return artifacts || [];
   } catch (error) {
     console.error('Error getting user artifacts:', error);
@@ -175,7 +216,7 @@ export async function addUserArtifact(userId: number, artifactId: string, source
     // Проверяем, нет ли уже такого артефакта
     if (!artifacts.some(a => a.artifact_id === artifactId)) {
       artifacts.push(newArtifact);
-      await kv.set(KEYS.userArtifacts(userId), artifacts);
+      await storage.set(KEYS.userArtifacts(userId), artifacts);
     }
     
     return newArtifact;
@@ -188,7 +229,7 @@ export async function addUserArtifact(userId: number, artifactId: string, source
 // Функции для работы с рефералами
 export async function getUserReferrals(userId: number): Promise<Referral[]> {
   try {
-    const referrals = await kv.get<Referral[]>(KEYS.userReferrals(userId));
+    const referrals = await storage.get<Referral[]>(KEYS.userReferrals(userId));
     return referrals || [];
   } catch (error) {
     console.error('Error getting user referrals:', error);
@@ -199,7 +240,7 @@ export async function getUserReferrals(userId: number): Promise<Referral[]> {
 export async function addReferral(referrerId: number, referredId: number): Promise<boolean> {
   try {
     // Проверяем, нет ли уже такого реферала
-    const existingRef = await kv.get(KEYS.referralByUser(referrerId, referredId));
+    const existingRef = await storage.get(KEYS.referralByUser(referrerId, referredId));
     if (existingRef) return false;
     
     const referral: Referral = {
@@ -210,17 +251,17 @@ export async function addReferral(referrerId: number, referredId: number): Promi
     };
     
     // Сохраняем реферал для обоих пользователей
-    await kv.set(KEYS.referralByUser(referrerId, referredId), referral);
+    await storage.set(KEYS.referralByUser(referrerId, referredId), referral);
     
     // Добавляем в список рефералов реферера
     const referrerRefs = await getUserReferrals(referrerId);
     referrerRefs.push(referral);
-    await kv.set(KEYS.userReferrals(referrerId), referrerRefs);
+    await storage.set(KEYS.userReferrals(referrerId), referrerRefs);
     
     // Добавляем в список рефералов реферала (кто его пригласил)
     const referredRefs = await getUserReferrals(referredId);
     referredRefs.push(referral);
-    await kv.set(KEYS.userReferrals(referredId), referredRefs);
+    await storage.set(KEYS.userReferrals(referredId), referredRefs);
     
     return true;
   } catch (error) {
