@@ -9,6 +9,16 @@ const redis = new Redis({
 // Если нет credentials, используем fallback
 const isRedisConfigured = !!(process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL);
 
+// Логируем состояние конфигурации при инициализации
+if (typeof window === 'undefined') { // Только на сервере
+  if (isRedisConfigured) {
+    console.log('✅ Redis configured successfully');
+  } else {
+    console.warn('⚠️ Redis not configured - using in-memory storage (data will be lost on restart)');
+    console.log('To fix this, set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN environment variables');
+  }
+}
+
 // In-memory storage для разработки/fallback
 const memoryStore = new Map<string, any>();
 
@@ -321,8 +331,13 @@ export async function completeMission(userId: number, missionId: string): Promis
 // Функция обработки реферала с бонусами
 export async function handleReferralBonus(referrerId: number, referredId: number): Promise<boolean> {
   try {
+    console.log(`🎁 Processing referral: ${referrerId} -> ${referredId}`);
+    
     const added = await addReferral(referrerId, referredId);
-    if (!added) return false;
+    if (!added) {
+      console.log(`❌ Referral already exists: ${referrerId} -> ${referredId}`);
+      return false;
+    }
     
     // Начисляем бонусы обоим пользователям
     const referrer = await getUser(referrerId);
@@ -332,14 +347,17 @@ export async function handleReferralBonus(referrerId: number, referredId: number
       await updateUser(referrerId, {
         light_balance: referrer.light_balance + 100,
       });
+      console.log(`💰 Referrer ${referrerId} received +100 LIGHT (new balance: ${referrer.light_balance + 100})`);
     }
     
     if (referred) {
       await updateUser(referredId, {
         light_balance: referred.light_balance + 100,
       });
+      console.log(`💰 Referred ${referredId} received +100 LIGHT (new balance: ${referred.light_balance + 100})`);
     }
     
+    console.log(`✅ Referral bonus processed successfully: ${referrerId} -> ${referredId}`);
     return true;
   } catch (error) {
     console.error('Error handling referral bonus:', error);
