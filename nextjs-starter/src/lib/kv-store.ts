@@ -7,8 +7,9 @@ let isRedisConfigured = false;
 function getRedisClient(): Redis | null {
   if (redis) return redis;
   
-  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+  // ВРЕМЕННО: хардкод для тестирования
+  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || 'https://concrete-krill-45469.upstash.io';
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || 'AbGdAAIjcDFhYjJlYjRiMWZkMWQ0NWMxYThkZmEzMzMyMjk0OTY0MXAxMA';
   
   if (url && token) {
     try {
