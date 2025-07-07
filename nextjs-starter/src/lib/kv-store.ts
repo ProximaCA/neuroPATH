@@ -1,21 +1,41 @@
 import { Redis } from '@upstash/redis';
 
-// Создаём клиент Upstash Redis
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || '',
-  token: process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || '',
-});
+// Функция для получения Redis клиента (ленивая инициализация)
+let redis: Redis | null = null;
+let isRedisConfigured = false;
 
-// Если нет credentials, используем fallback
-const isRedisConfigured = !!(process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL);
+function getRedisClient(): Redis | null {
+  if (redis) return redis;
+  
+  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+  
+  if (url && token) {
+    try {
+      redis = new Redis({ url, token });
+      isRedisConfigured = true;
+      return redis;
+    } catch (error) {
+      console.error('Failed to initialize Redis:', error);
+      return null;
+    }
+  }
+  
+  return null;
+}
 
-// Логируем состояние конфигурации при инициализации
-if (typeof window === 'undefined') { // Только на сервере
-  if (isRedisConfigured) {
-    console.log('✅ Redis configured successfully');
-  } else {
-    console.warn('⚠️ Redis not configured - using in-memory storage (data will be lost on restart)');
-    console.log('To fix this, set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN environment variables');
+// Логируем состояние конфигурации при первом использовании
+function checkRedisConfig() {
+  if (typeof window === 'undefined') { // Только на сервере
+    const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+    const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+    
+    if (url && token) {
+      console.log('✅ Redis configured successfully');
+    } else {
+      console.warn('⚠️ Redis not configured - using in-memory storage (data will be lost on restart)');
+      console.log('To fix this, set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN environment variables');
+    }
   }
 }
 
@@ -25,12 +45,14 @@ const memoryStore = new Map<string, any>();
 // Обёртка для Redis с fallback
 const storage = {
   async get<T>(key: string): Promise<T | null> {
-    if (!isRedisConfigured) {
+    checkRedisConfig();
+    const redisClient = getRedisClient();
+    if (!redisClient) {
       console.warn('Redis not configured, using in-memory storage');
       return memoryStore.get(key) || null;
     }
     try {
-      return await redis.get<T>(key);
+      return await redisClient.get<T>(key);
     } catch (error) {
       console.error('Redis get error:', error);
       return null;
@@ -38,13 +60,14 @@ const storage = {
   },
   
   async set(key: string, value: any): Promise<void> {
-    if (!isRedisConfigured) {
+    const redisClient = getRedisClient();
+    if (!redisClient) {
       console.warn('Redis not configured, using in-memory storage');
       memoryStore.set(key, value);
       return;
     }
     try {
-      await redis.set(key, value);
+      await redisClient.set(key, value);
     } catch (error) {
       console.error('Redis set error:', error);
     }

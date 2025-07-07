@@ -56,7 +56,7 @@ const ELEMENTS_DATA = [
   },
   {
     id: "b2c3d4e5-f6a7-8901-2345-678901bcdef0",
-    name: "Воздух",
+    name: "Воздух", 
     description: "Ясность мысли и легкость",
     color_code: "#87CEEB",
     image_url: "/images/air-element.jpg",
@@ -79,7 +79,7 @@ const ELEMENTS_DATA = [
     unlock_level: 15,
     total_missions: 3,
     created_at: new Date().toISOString(),
-    emoji: "🌍",
+    emoji: "🌍", 
     isAvailable: false,
     missions: 4,
     progress: 0,

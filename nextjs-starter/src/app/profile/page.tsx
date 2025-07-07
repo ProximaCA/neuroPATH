@@ -146,7 +146,7 @@ export default function ProfilePage() {
       try {
         // Получаем всех друзей из KV store
         const referrals = await kvStore.getUserReferrals(user.id);
-        
+
         if (referrals && referrals.length > 0) {
           // Находим всех друзей - тех кого пригласил + того кто пригласил
           const allFriendIds = new Set<number>();
@@ -179,7 +179,7 @@ export default function ProfilePage() {
             const userData = await Promise.all(
               Array.from(allFriendIds).map(id => kvStore.getUser(id))
             );
-            
+
             const validUsers = userData.filter(u => u !== null);
             
             if (validUsers.length > 0) {
