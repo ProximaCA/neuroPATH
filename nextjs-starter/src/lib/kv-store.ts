@@ -273,15 +273,15 @@ export async function getUserReferrals(userId: number): Promise<Referral[]> {
 
 export async function addReferral(referrerId: number, referredId: number): Promise<boolean> {
   try {
-    console.log(`🔍 Checking existing referral: ${referrerId} -> ${referredId}`);
-    console.log(`🔑 Referral key: ${KEYS.referralByUser(referrerId, referredId)}`);
+    console.log(`🔍 [SERVER] Checking existing referral: ${referrerId} -> ${referredId}`);
+    console.log(`🔑 [SERVER] Referral key: ${KEYS.referralByUser(referrerId, referredId)}`);
     
     // Проверяем, нет ли уже такого реферала
     const existingRef = await storage.get(KEYS.referralByUser(referrerId, referredId));
-    console.log(`📋 Existing referral found:`, existingRef);
+    console.log(`📋 [SERVER] Existing referral found:`, existingRef);
     
     if (existingRef) {
-      console.log(`❌ Referral already exists for ${referrerId} -> ${referredId}`);
+      console.log(`❌ [SERVER] Referral already exists for ${referrerId} -> ${referredId}`);
       return false;
     }
     
@@ -369,11 +369,13 @@ export async function completeMission(userId: number, missionId: string): Promis
 // Функция обработки реферала с бонусами
 export async function handleReferralBonus(referrerId: number, referredId: number): Promise<boolean> {
   try {
-    console.log(`🎁 Processing referral: ${referrerId} -> ${referredId}`);
+    console.log(`🎁 [SERVER] Processing referral: ${referrerId} -> ${referredId}`);
     
     const added = await addReferral(referrerId, referredId);
+    console.log(`📊 [SERVER] addReferral result:`, added);
+    
     if (!added) {
-      console.log(`❌ Referral already exists: ${referrerId} -> ${referredId}`);
+      console.log(`❌ [SERVER] Referral already exists: ${referrerId} -> ${referredId}`);
       return false;
     }
     

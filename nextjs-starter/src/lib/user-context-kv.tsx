@@ -264,10 +264,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   // Handle referral system with notification
   const handleReferral = async (referrerId: number): Promise<boolean> => {
-    if (!user) return false;
+    if (!user) {
+      console.log(`❌ [CLIENT] No user found for referral processing`);
+      return false;
+    }
 
     try {
+      console.log(`🎁 [CLIENT] Calling handleReferralBonus: ${referrerId} -> ${user.id}`);
       const success = await kvStore.handleReferralBonus(referrerId, user.id);
+      console.log(`📊 [CLIENT] handleReferralBonus result:`, success);
 
       if (success) {
         // Get referrer info for notification
