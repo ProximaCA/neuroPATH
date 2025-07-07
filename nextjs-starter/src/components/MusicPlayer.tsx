@@ -291,9 +291,8 @@ const MeditationPlayer: React.FC<MeditationPlayerProps> = ({
   ...flex 
 }) => {
   const progressPercent = currentTime && totalTime ? 
-    Math.round((parseInt(currentTime.split(':')[0]) * 60 + parseInt(currentTime.split(':')[1])) / 
-    (parseInt(currentTime.split(':')[0]) * 60 + parseInt(currentTime.split(':')[1])) / 
-    (parseInt(totalTime.split(':')[0]) * 60 + parseInt(totalTime.split(':')[1])) * 100 : 0;
+    Math.round(((parseInt(currentTime.split(':')[0]) * 60 + parseInt(currentTime.split(':')[1])) / 
+    (parseInt(totalTime.split(':')[0]) * 60 + parseInt(totalTime.split(':')[1]))) * 100) : 0;
 
   // Audio element ref
   const audioRef = React.useRef<HTMLAudioElement>(null);
