@@ -280,7 +280,7 @@ const MeditationPlayer: React.FC<MeditationPlayerProps> = ({
   currentTime = "0:00",
   totalTime = "5:00",
   title = "Погружение",
-  description = "Медитация стихии Воды",
+  description = "Вход в стихию Воды",
   audioSrc,
   onAudioTimeUpdate,
   onEnded,
@@ -291,6 +291,7 @@ const MeditationPlayer: React.FC<MeditationPlayerProps> = ({
   ...flex 
 }) => {
   const progressPercent = currentTime && totalTime ? 
+    Math.round((parseInt(currentTime.split(':')[0]) * 60 + parseInt(currentTime.split(':')[1])) / 
     (parseInt(currentTime.split(':')[0]) * 60 + parseInt(currentTime.split(':')[1])) / 
     (parseInt(totalTime.split(':')[0]) * 60 + parseInt(totalTime.split(':')[1])) * 100 : 0;
 
@@ -417,14 +418,6 @@ const MeditationPlayer: React.FC<MeditationPlayerProps> = ({
             }}
           />
           
-          {/* Water emoji background */}
-          <div style={{ 
-            position: "absolute",
-            fontSize: "4rem",
-            opacity: 0.3
-          }}>
-            🌊
-          </div>
           
           {/* Play/Pause icon in center */}
           <div style={{ 
@@ -493,7 +486,7 @@ const MeditationPlayer: React.FC<MeditationPlayerProps> = ({
           >
             <div
               style={{
-                width: `${progressPercent}%`,
+                width: `${Math.round(progressPercent * 100) / 100}%`,
                 height: "100%",
                 backgroundColor: "#00A9FF",
                 borderRadius: "4px",
@@ -504,7 +497,7 @@ const MeditationPlayer: React.FC<MeditationPlayerProps> = ({
             <div
               style={{
                 position: "absolute",
-                left: `${progressPercent}%`,
+                left: `${Math.round(progressPercent * 100) / 100}%`,
                 top: "50%",
                 transform: "translate(-50%, -50%)",
                 width: "16px",

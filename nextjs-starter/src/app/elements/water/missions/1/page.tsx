@@ -546,33 +546,11 @@ export default function MissionPage() {
 
           {/* Meditation Visual */}
           <Column align="center" gap="l">
-            <div
-              style={{
-                width: "200px",
-                height: "200px",
-                borderRadius: "50%",
-                background: "linear-gradient(135deg, #00A9FF, #0080CC)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "3rem",
-                filter: "blur(1px) brightness(0.8)",
-                opacity: progress.isPlaying ? 1 : 0.6,
-                transition: "all 0.5s ease",
-                animation: progress.isPlaying ? "pulse 3s infinite" : "none"
-              }}
-            >
-              <img
-                src="/images/water-element.jpg"
-                alt="Вода"
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  borderRadius: "50%"
-                }}
+              <Avatar
+                src="/images/water-element.png"
+                size="l"
               />
-            </div>
+           
             
             <Text 
               variant="body-default-l" 

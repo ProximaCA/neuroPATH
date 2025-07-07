@@ -367,17 +367,28 @@ export function UserProvider({ children }: { children: ReactNode }) {
           
           // Check for referral parameters in URL
           if (typeof window !== 'undefined') {
+            console.log('🔍 Checking for referral parameters...');
+            console.log('🌐 Current URL:', window.location.href);
+            console.log('🔗 Search params:', window.location.search);
+            
             const urlParams = new URLSearchParams(window.location.search);
+            console.log('📋 All URL params:', Object.fromEntries(urlParams.entries()));
+            
             const referrerId = urlParams.get('referrer');
+            console.log('👥 Referrer ID from URL:', referrerId);
+            console.log('🆔 Current user ID:', telegramUser.id.toString());
+            
             if (referrerId && referrerId !== telegramUser.id.toString()) {
-              console.log('Processing referral from:', referrerId);
+              console.log('🎁 Processing referral from:', referrerId);
               handleReferral(parseInt(referrerId)).then((success) => {
                 if (success) {
-                  console.log('Referral processed successfully');
+                  console.log('✅ Referral processed successfully');
                 } else {
-                  console.log('Referral processing failed or already exists');
+                  console.log('❌ Referral processing failed or already exists');
                 }
               });
+            } else {
+              console.log('❌ No valid referral found or self-referral');
             }
           }
         });
