@@ -273,9 +273,17 @@ export async function getUserReferrals(userId: number): Promise<Referral[]> {
 
 export async function addReferral(referrerId: number, referredId: number): Promise<boolean> {
   try {
+    console.log(`🔍 Checking existing referral: ${referrerId} -> ${referredId}`);
+    console.log(`🔑 Referral key: ${KEYS.referralByUser(referrerId, referredId)}`);
+    
     // Проверяем, нет ли уже такого реферала
     const existingRef = await storage.get(KEYS.referralByUser(referrerId, referredId));
-    if (existingRef) return false;
+    console.log(`📋 Existing referral found:`, existingRef);
+    
+    if (existingRef) {
+      console.log(`❌ Referral already exists for ${referrerId} -> ${referredId}`);
+      return false;
+    }
     
     const referral: Referral = {
       referrer_user_id: referrerId,
@@ -284,19 +292,25 @@ export async function addReferral(referrerId: number, referredId: number): Promi
       bonus_given: false,
     };
     
+    console.log(`💾 Creating new referral:`, referral);
+    
     // Сохраняем реферал для обоих пользователей
     await storage.set(KEYS.referralByUser(referrerId, referredId), referral);
+    console.log(`✅ Saved referral with key: ${KEYS.referralByUser(referrerId, referredId)}`);
     
     // Добавляем в список рефералов реферера
     const referrerRefs = await getUserReferrals(referrerId);
     referrerRefs.push(referral);
     await storage.set(KEYS.userReferrals(referrerId), referrerRefs);
+    console.log(`✅ Added to referrer (${referrerId}) referrals list, total: ${referrerRefs.length}`);
     
     // Добавляем в список рефералов реферала (кто его пригласил)
     const referredRefs = await getUserReferrals(referredId);
     referredRefs.push(referral);
     await storage.set(KEYS.userReferrals(referredId), referredRefs);
+    console.log(`✅ Added to referred (${referredId}) referrals list, total: ${referredRefs.length}`);
     
+    console.log(`🎉 Referral created successfully: ${referrerId} -> ${referredId}`);
     return true;
   } catch (error) {
     console.error('Error adding referral:', error);
