@@ -97,16 +97,6 @@ export default function MissionPage() {
     }
   };
 
-  // Сохраняем накопленные секунды при выходе со страницы
-  useEffect(() => {
-    return () => {
-      if (currentTimeSeconds > 0 && !hasFinishedMeditation) {
-        console.log(`💾 [CLIENT] Unmounting. Saving ${currentTimeSeconds} seconds of meditation.`);
-        addMeditationSeconds(currentTimeSeconds);
-      }
-    };
-  }, [currentTimeSeconds, hasFinishedMeditation, addMeditationSeconds]);
-
   const restartMeditation = () => {
     // При рестарте не сохраняем время, т.к. пользователь решил начать заново
     setCurrentTimeSeconds(0);
@@ -550,7 +540,7 @@ export default function MissionPage() {
               </Heading>
               <Button 
                 variant="secondary" 
-                prefixIcon="rotateCw" 
+                prefixIcon="refresh-cw" 
                 onClick={restartMeditation}
               >
                 Начать заново
