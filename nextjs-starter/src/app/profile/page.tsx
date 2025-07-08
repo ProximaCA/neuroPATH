@@ -312,6 +312,35 @@ export default function ProfilePage() {
     }
   };
 
+  // Определяем ссылку для продолжения медитации
+  const getContinueMeditationLink = () => {
+    // Ищем незавершенную миссию
+    const inProgressMission = missionProgress.find(m => m.status === 'in_progress');
+    
+    if (inProgressMission) {
+      // Если есть миссия в прогрессе, открываем её
+      if (inProgressMission.mission_id === 'd9e3f8a0-cb3a-4c9c-8f1a-6d5b7a8e9c0d') {
+        return '/elements/water/missions/1'; // Первая миссия воды
+      }
+      // Можно добавить другие миссии здесь
+    }
+    
+    // По умолчанию открываем список миссий воды
+    return '/elements/water';
+  };
+
+  const getContinueMeditationText = () => {
+    const inProgressMission = missionProgress.find(m => m.status === 'in_progress');
+    
+    if (inProgressMission && inProgressMission.time_spent_seconds > 0) {
+      const minutes = Math.floor(inProgressMission.time_spent_seconds / 60);
+      const seconds = inProgressMission.time_spent_seconds % 60;
+      return `Продолжить медитацию (${minutes}:${seconds.toString().padStart(2, '0')})`;
+    }
+    
+    return 'Продолжить медитации';
+  };
+
   if (isLoading) {
     return (
       <Column fillWidth style={{ minHeight: "100vh" }}>
@@ -865,7 +894,7 @@ export default function ProfilePage() {
 
           {/* Quick Actions */}
           <Column gap="m">
-            <Link href="/elements/water">
+            <Link href={getContinueMeditationLink()}>
               <Button
                 variant="primary"
                 fillWidth
@@ -875,7 +904,7 @@ export default function ProfilePage() {
                 }}
                 arrowIcon
               >
-                Продолжить медитации
+                {getContinueMeditationText()}
               </Button>
             </Link>
             <Link href="/">

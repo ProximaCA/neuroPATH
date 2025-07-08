@@ -66,8 +66,10 @@ export default function MissionPage() {
   };
 
   const handleAudioTimeUpdate = (currentTime: number) => {
-    setCurrentTimeSeconds(currentTime);
-    const remaining = Math.max(0, totalDurationSeconds - currentTime);
+    // Округляем до целых секунд
+    const roundedTime = Math.floor(currentTime);
+    setCurrentTimeSeconds(roundedTime);
+    const remaining = Math.max(0, totalDurationSeconds - roundedTime);
     setProgress(prev => ({ ...prev, timeRemaining: remaining }));
   };
 
@@ -142,6 +144,11 @@ export default function MissionPage() {
           const remaining = Math.max(0, totalDurationSeconds - newTime);
           setProgress(p => ({ ...p, timeRemaining: remaining }));
           
+          // Автосохранение каждые 10 секунд
+          if (newTime % 10 === 0 && newTime > 0) {
+            saveCurrentProgress();
+          }
+          
           // Auto complete when time is up
           if (newTime >= totalDurationSeconds) {
             setHasFinishedMeditation(true);
@@ -183,17 +190,66 @@ export default function MissionPage() {
     }
   };
 
-  const togglePlayPause = () => {
+  const togglePlayPause = async () => {
     triggerHaptic('selection');
+    
+    // Если ставим на паузу, сохраняем прогресс
+    if (progress.isPlaying) {
+      await saveCurrentProgress();
+    }
+    
     setProgress(prev => ({ ...prev, isPlaying: !prev.isPlaying }));
   };
 
-  // Check if mission is already completed
+  // Функция сохранения текущего прогресса
+  const saveCurrentProgress = async () => {
+    if (user && currentTimeSeconds > 0) {
+      console.log(`💾 [CLIENT] Saving meditation progress: ${currentTimeSeconds} seconds`);
+      await updateUserProgress(missionId, {
+        status: 'in_progress',
+        time_spent_seconds: currentTimeSeconds,
+        progress_percentage: Math.min(100, Math.floor((currentTimeSeconds / totalDurationSeconds) * 100)),
+        current_step: Math.min(5, Math.floor((currentTimeSeconds / totalDurationSeconds) * 5) + 1),
+        last_activity: new Date().toISOString(),
+      });
+    }
+  };
+
+  // Check if mission is already completed and load saved progress
   useEffect(() => {
     if (userProgress?.status === 'completed' && artifactEarned) {
       setProgress(prev => ({ ...prev, isCompleted: true }));
+    } else if (userProgress?.status === 'in_progress' && userProgress.time_spent_seconds > 0) {
+      // Восстанавливаем сохраненный прогресс
+      console.log(`🔄 [CLIENT] Restoring meditation progress: ${userProgress.time_spent_seconds} seconds`);
+      setCurrentTimeSeconds(userProgress.time_spent_seconds);
+      setProgress(prev => ({ 
+        ...prev, 
+        currentStep: userProgress.current_step || 1,
+        timeRemaining: Math.max(0, totalDurationSeconds - userProgress.time_spent_seconds)
+      }));
+      setShowInstructions(false); // Сразу показываем интерфейс медитации
     }
-  }, [userProgress, artifactEarned]);
+  }, [userProgress, artifactEarned, totalDurationSeconds]);
+
+  // Сохранение прогресса при выходе со страницы
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (currentTimeSeconds > 0) {
+        saveCurrentProgress();
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      // Сохраняем при размонтировании компонента
+      if (currentTimeSeconds > 0) {
+        saveCurrentProgress();
+      }
+    };
+  }, [currentTimeSeconds]);
 
   if (showInstructions) {
     return (
@@ -533,7 +589,6 @@ export default function MissionPage() {
             onPlayPause={togglePlayPause}
             currentTime={formatTime(currentTimeSeconds)}
             totalTime={formatTime(totalDurationSeconds)}
-            title={missionSteps[progress.currentStep - 1]?.title || "Погружение"}
             description="Медитация стихии Воды"
             audioSrc="/audio/water-meditation.mp3"
             onAudioTimeUpdate={handleAudioTimeUpdate}
