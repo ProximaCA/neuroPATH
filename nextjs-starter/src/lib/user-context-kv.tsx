@@ -375,7 +375,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
             console.log('🔍 Checking for referral parameters...');
             console.log('🌐 Current URL:', window.location.href);
             console.log('🔗 Search params:', window.location.search);
-            
             const urlParams = new URLSearchParams(window.location.search);
             console.log('📋 All URL params:', Object.fromEntries(urlParams.entries()));
             
