@@ -192,6 +192,14 @@ export function UserProvider({ children }: { children: ReactNode }) {
       const deltaSeconds = newTime - prevTime;
       const deltaMinutes = Math.floor(deltaSeconds / 60);
 
+      console.log(`⏱️ [CLIENT] Time tracking for mission ${missionId}:`, {
+        prevTime,
+        newTime,
+        deltaSeconds,
+        deltaMinutes,
+        currentTotalMinutes: user.total_meditation_minutes
+      });
+
       const updatedProgress = await kvStore.updateMissionProgress(user.id, missionId, progress);
       
       if (updatedProgress) {
@@ -202,14 +210,18 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
         // Update user's total meditation time только на дельту
         if (deltaMinutes > 0) {
+          console.log(`📈 [CLIENT] Adding ${deltaMinutes} minutes to user total`);
           const updatedUser = await kvStore.updateUser(user.id, {
             total_meditation_minutes: user.total_meditation_minutes + deltaMinutes,
             last_activity: new Date().toISOString(),
           });
 
           if (updatedUser) {
+            console.log(`✅ [CLIENT] User total minutes updated: ${updatedUser.total_meditation_minutes}`);
             setUser(updatedUser);
           }
+        } else {
+          console.log(`⏭️ [CLIENT] No minutes to add (deltaMinutes: ${deltaMinutes})`);
         }
       }
     } catch (error) {
@@ -305,15 +317,28 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Get daily light sending info (simplified for now)
+  // Get daily light sending info
   const getDailyLightSent = async (): Promise<DailyLimitInfo> => {
-    // TODO: Implement daily limit tracking in KV
-    return {
-      dailySent: 0,
-      dailyLimit: 50,
-      remainingToday: 50,
-      canSend: true
-    };
+    if (!user) {
+      return {
+        dailySent: 0,
+        dailyLimit: 50,
+        remainingToday: 50,
+        canSend: true
+      };
+    }
+    
+    try {
+      return await kvStore.getDailyLightSent(user.id);
+    } catch (error) {
+      console.error('Error getting daily light sent:', error);
+      return {
+        dailySent: 0,
+        dailyLimit: 50,
+        remainingToday: 50,
+        canSend: true
+      };
+    }
   };
 
   // Send light to friend

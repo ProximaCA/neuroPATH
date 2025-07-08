@@ -52,7 +52,7 @@ export default function MissionPage() {
   const artifactEarned = hasArtifact('c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f');
 
   const missionSteps = [
-    { title: "Интро", duration: "0:30", description: "Вход в стихию Воды" },
+    { title: "Погружение", duration: "0:30", description: "Вход в стихию Воды" },
     { title: "Дыхание", duration: "0:50", description: "Техника расслабления" },
     { title: "Погружение", duration: "1:40", description: "Визуализация воды" },
     { title: "Метафора тела", duration: "1:00", description: "Работа с эмоциями" },
@@ -546,10 +546,7 @@ export default function MissionPage() {
 
           {/* Meditation Visual */}
           <Column align="center" gap="l">
-              <Avatar
-                src="/images/water-element.png"
-                size="l"
-              />
+
            
             
             <Text 

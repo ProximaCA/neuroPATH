@@ -131,6 +131,7 @@ const KEYS = {
   userArtifacts: (userId: number) => `artifacts:${userId}`,
   userReferrals: (userId: number) => `referrals:${userId}`,
   referralByUser: (referrerId: number, referredId: number) => `ref:${referrerId}:${referredId}`,
+  dailyLightSent: (userId: number, date: string) => `daily_light:${userId}:${date}`,
 };
 
 // Функции для работы с пользователями
@@ -427,6 +428,46 @@ export async function handleReferralBonus(referrerId: number, referredId: number
   }
 }
 
+// Функции для отслеживания дневных лимитов
+export async function getDailyLightSent(userId: number): Promise<{
+  dailySent: number;
+  dailyLimit: number;
+  remainingToday: number;
+  canSend: boolean;
+}> {
+  try {
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const dailySent = await storage.get<number>(KEYS.dailyLightSent(userId, today)) || 0;
+    const dailyLimit = 50;
+    const remainingToday = Math.max(0, dailyLimit - dailySent);
+    
+    return {
+      dailySent,
+      dailyLimit,
+      remainingToday,
+      canSend: remainingToday > 0
+    };
+  } catch (error) {
+    console.error('Error getting daily light sent:', error);
+    return {
+      dailySent: 0,
+      dailyLimit: 50,
+      remainingToday: 50,
+      canSend: true
+    };
+  }
+}
+
+async function updateDailyLightSent(userId: number, amount: number): Promise<void> {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const currentSent = await storage.get<number>(KEYS.dailyLightSent(userId, today)) || 0;
+    await storage.set(KEYS.dailyLightSent(userId, today), currentSent + amount);
+  } catch (error) {
+    console.error('Error updating daily light sent:', error);
+  }
+}
+
 // Функция отправки света другу
 export async function sendLight(
   senderId: number, 
@@ -445,7 +486,11 @@ export async function sendLight(
       return { success: false, error: 'Недостаточно света' };
     }
     
-    // TODO: Добавить проверку дневного лимита (50 света в день)
+    // Проверяем дневной лимит
+    const dailyInfo = await getDailyLightSent(senderId);
+    if (dailyInfo.remainingToday < amount) {
+      return { success: false, error: `Превышен дневной лимит. Осталось: ${dailyInfo.remainingToday} света` };
+    }
     
     await updateUser(senderId, {
       light_balance: sender.light_balance - amount,
@@ -454,6 +499,9 @@ export async function sendLight(
     await updateUser(receiverId, {
       light_balance: receiver.light_balance + amount,
     });
+    
+    // Обновляем счетчик отправленного света
+    await updateDailyLightSent(senderId, amount);
     
     return { success: true };
   } catch (error) {
