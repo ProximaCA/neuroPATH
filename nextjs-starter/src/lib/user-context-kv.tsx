@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { useTelegramWebApp, TelegramUser } from './telegram';
 import { ReferralNotification } from '../components/ReferralNotification';
 import * as kvStore from './kv-store';
@@ -84,27 +84,17 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   
   // Notification state
-  const [notificationData, setNotificationData] = useState<{
-    show: boolean;
-    amount: number;
-    friendName: string;
-    friendAvatar?: string;
-    type: 'received' | 'sent';
-  }>({
-    show: false,
-    amount: 0,
-    friendName: '',
-    type: 'received'
-  });
+  const [showNotification, setShowNotification] = useState(false);
+  const [notificationAmount, setNotificationAmount] = useState(0);
+  const [friendName, setFriendName] = useState('');
+  const [friendAvatar, setFriendAvatar] = useState<string | undefined>(undefined);
+  const [notificationType, setNotificationType] = useState<'received' | 'sent'>('received');
 
-  // Initialize or update user
-  const initializeUser = async (tgUser: TelegramUser) => {
+  // Оборачиваем все функции в useCallback для стабильности
+  const initializeUser = useCallback(async (tgUser: TelegramUser) => {
     try {
-      // Check if user exists
       let userData = await kvStore.getUser(tgUser.id);
-
       if (userData) {
-        // Update existing user with latest Telegram data
         userData = await kvStore.updateUser(tgUser.id, {
           first_name: tgUser.first_name,
           last_name: tgUser.last_name,
@@ -146,22 +136,17 @@ export function UserProvider({ children }: { children: ReactNode }) {
           });
         }
       }
-
       setUser(userData);
     } catch (error) {
       console.error('Error initializing user:', error);
       alert('Ошибка инициализации пользователя: ' + error);
     }
-  };
+  }, []);
 
-  // Load user progress data
-  const loadUserData = async (userId: number) => {
+  const loadUserData = useCallback(async (userId: number) => {
     try {
-      // Load mission progress
       const progress = await kvStore.getUserProgress(userId);
       setMissionProgress(progress);
-
-      // Load user artifacts and enrich with static data
       const artifacts = await kvStore.getUserArtifacts(userId);
       const enrichedArtifacts: UserArtifactWithData[] = artifacts.map(a => ({
         ...a,
@@ -179,7 +164,120 @@ export function UserProvider({ children }: { children: ReactNode }) {
       console.error('Error loading user data:', error);
       alert('Ошибка загрузки данных: ' + error);
     }
-  };
+  }, []);
+
+  const refreshUserData = useCallback(async () => {
+    if (!telegramUser) return;
+    try {
+      const userData = await kvStore.getUser(telegramUser.id);
+      if (userData) {
+        setUser(userData);
+        await loadUserData(telegramUser.id);
+      }
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
+    }
+  }, [telegramUser, loadUserData]);
+
+  const showReferralNotification = useCallback((amount: number, friendName: string, friendAvatar?: string, type: 'received' | 'sent' = 'received') => {
+    setNotificationAmount(amount);
+    setFriendName(friendName);
+    setFriendAvatar(friendAvatar);
+    setNotificationType(type);
+    setShowNotification(true);
+  }, []);
+
+  const handleReferral = useCallback(async (referrerId: number): Promise<boolean> => {
+    if (!telegramUser) {
+      console.log(`❌ [CLIENT] No telegram user found for referral processing`);
+      return false;
+    }
+
+    try {
+      // Get user data directly from store instead of relying on React state
+      const currentUser = await kvStore.getUser(telegramUser.id);
+      if (!currentUser) {
+        console.log(`❌ [CLIENT] No user found in database for ID: ${telegramUser.id}`);
+        return false;
+      }
+
+      console.log(`🎁 [CLIENT] Calling handleReferralBonus: ${referrerId} -> ${currentUser.id}`);
+      console.log(`👤 [CLIENT] Current user from DB:`, { id: currentUser.id, name: currentUser.first_name, balance: currentUser.light_balance });
+      
+      const success = await kvStore.handleReferralBonus(referrerId, currentUser.id);
+      console.log(`📊 [CLIENT] handleReferralBonus result:`, success);
+
+      if (success) {
+        // Get referrer info for notification
+        const referrerData = await kvStore.getUser(referrerId);
+
+        // Show notification
+        if (referrerData) {
+          const referrerName = `${referrerData.first_name} ${referrerData.last_name || ''}`.trim();
+          showReferralNotification(100, referrerName, referrerData.photo_url, 'received');
+        }
+
+        // Refresh user data to get updated balance
+        await refreshUserData();
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Error handling referral:', error);
+      return false;
+    }
+  }, [telegramUser, refreshUserData, showReferralNotification]);
+
+  // Основной useEffect для инициализации
+  useEffect(() => {
+    console.log('UserProvider useEffect triggered', { telegramUser, tgLoading });
+    if (telegramUser && !tgLoading) {
+      console.log('Initializing user with Telegram data:', telegramUser);
+      initializeUser(telegramUser).then(() => {
+        console.log('User initialized, loading user data...');
+        return loadUserData(telegramUser.id);
+      }).then(() => {
+        console.log('User data loaded, setting isLoading to false');
+        setIsLoading(false);
+        
+        // Check for referral parameters in URL AFTER user is fully initialized
+        if (typeof window !== 'undefined') {
+          console.log('🔍 Checking for referral parameters...');
+          console.log('🌐 Current URL:', window.location.href);
+          console.log('🔗 Search params:', window.location.search);
+          const urlParams = new URLSearchParams(window.location.search);
+          console.log('📋 All URL params:', Object.fromEntries(urlParams.entries()));
+          
+          const referrerId = urlParams.get('referrer');
+          console.log('👥 Referrer ID from URL:', referrerId);
+          console.log('🆔 Current user ID:', telegramUser.id.toString());
+          
+          if (referrerId && referrerId !== telegramUser.id.toString()) {
+            console.log('🎁 Processing referral from:', referrerId);
+            // Add a small delay to ensure user state is fully updated
+            setTimeout(() => {
+              handleReferral(parseInt(referrerId)).then((success) => {
+                if (success) {
+                  console.log('✅ Referral processed successfully');
+                } else {
+                  console.log('❌ Referral processing failed or already exists');
+                }
+              });
+            }, 100);
+          } else {
+            console.log('❌ No valid referral found or self-referral');
+          }
+        }
+      }).catch((error) => {
+        console.error('Error during user initialization:', error);
+        setIsLoading(false);
+      });
+    } else if (!tgLoading) {
+      console.log('No Telegram user found, setting isLoading to false');
+      setIsLoading(false);
+    }
+  }, [telegramUser, tgLoading, initializeUser, loadUserData, handleReferral]);
 
   // Update mission progress
   const updateUserProgress = async (missionId: string, progress: Partial<kvStore.MissionProgress>) => {
@@ -265,75 +363,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Refresh all user data
-  const refreshUserData = async () => {
-    if (!telegramUser) return;
-
-    try {
-      const userData = await kvStore.getUser(telegramUser.id);
-      if (userData) {
-        setUser(userData);
-        await loadUserData(telegramUser.id);
-      }
-    } catch (error) {
-      console.error('Error refreshing user data:', error);
-    }
-  };
-
-  // Show referral notification
-  const showReferralNotification = (amount: number, friendName: string, friendAvatar?: string, type: 'received' | 'sent' = 'received') => {
-    setNotificationData({
-      show: true,
-      amount,
-      friendName,
-      friendAvatar,
-      type
-    });
-  };
-
-  // Handle referral system with notification
-  const handleReferral = async (referrerId: number): Promise<boolean> => {
-    if (!telegramUser) {
-      console.log(`❌ [CLIENT] No telegram user found for referral processing`);
-      return false;
-    }
-
-    try {
-      // Get user data directly from store instead of relying on React state
-      const currentUser = await kvStore.getUser(telegramUser.id);
-      if (!currentUser) {
-        console.log(`❌ [CLIENT] No user found in database for ID: ${telegramUser.id}`);
-        return false;
-      }
-
-      console.log(`🎁 [CLIENT] Calling handleReferralBonus: ${referrerId} -> ${currentUser.id}`);
-      console.log(`👤 [CLIENT] Current user from DB:`, { id: currentUser.id, name: currentUser.first_name, balance: currentUser.light_balance });
-      
-      const success = await kvStore.handleReferralBonus(referrerId, currentUser.id);
-      console.log(`📊 [CLIENT] handleReferralBonus result:`, success);
-
-      if (success) {
-        // Get referrer info for notification
-        const referrerData = await kvStore.getUser(referrerId);
-
-        // Show notification
-        if (referrerData) {
-          const referrerName = `${referrerData.first_name} ${referrerData.last_name || ''}`.trim();
-          showReferralNotification(100, referrerName, referrerData.photo_url, 'received');
-        }
-
-        // Refresh user data to get updated balance
-        await refreshUserData();
-        return true;
-      }
-
-      return false;
-    } catch (error) {
-      console.error('Error handling referral:', error);
-      return false;
-    }
-  };
-
   // Get daily light sending info
   const getDailyLightSent = async (): Promise<DailyLimitInfo> => {
     if (!user) {
@@ -409,57 +438,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
     return 10;
   };
 
-  // Initialize user when Telegram user is available
-  useEffect(() => {
-    console.log('UserProvider useEffect triggered', { telegramUser, tgLoading });
-    
-    if (telegramUser && !tgLoading) {
-      console.log('Initializing user with Telegram data:', telegramUser);
-      initializeUser(telegramUser).then(() => {
-        console.log('User initialized, loading user data...');
-        return loadUserData(telegramUser.id);
-      }).then(() => {
-        console.log('User data loaded, setting isLoading to false');
-        setIsLoading(false);
-        
-        // Check for referral parameters in URL AFTER user is fully initialized
-        if (typeof window !== 'undefined') {
-          console.log('🔍 Checking for referral parameters...');
-          console.log('🌐 Current URL:', window.location.href);
-          console.log('🔗 Search params:', window.location.search);
-          const urlParams = new URLSearchParams(window.location.search);
-          console.log('📋 All URL params:', Object.fromEntries(urlParams.entries()));
-          
-          const referrerId = urlParams.get('referrer');
-          console.log('👥 Referrer ID from URL:', referrerId);
-          console.log('🆔 Current user ID:', telegramUser.id.toString());
-          
-          if (referrerId && referrerId !== telegramUser.id.toString()) {
-            console.log('🎁 Processing referral from:', referrerId);
-            // Add a small delay to ensure user state is fully updated
-            setTimeout(() => {
-              handleReferral(parseInt(referrerId)).then((success) => {
-                if (success) {
-                  console.log('✅ Referral processed successfully');
-                } else {
-                  console.log('❌ Referral processing failed or already exists');
-                }
-              });
-            }, 100);
-          } else {
-            console.log('❌ No valid referral found or self-referral');
-          }
-        }
-      }).catch((error) => {
-        console.error('Error during user initialization:', error);
-        setIsLoading(false);
-      });
-    } else if (!tgLoading) {
-      console.log('No Telegram user found, setting isLoading to false');
-      setIsLoading(false);
-    }
-  }, [telegramUser, tgLoading, handleReferral]);
-
   const value: UserContextType = {
     user,
     telegramUser,
@@ -485,12 +463,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
     <UserContext.Provider value={value}>
       {children}
       <ReferralNotification
-        show={notificationData.show}
-        amount={notificationData.amount}
-        friendName={notificationData.friendName}
-        friendAvatar={notificationData.friendAvatar}
-        type={notificationData.type}
-        onClose={() => setNotificationData(prev => ({ ...prev, show: false }))}
+        show={showNotification}
+        amount={notificationAmount}
+        friendName={friendName}
+        friendAvatar={friendAvatar}
+        type={notificationType}
+        onClose={() => setShowNotification(false)}
       />
     </UserContext.Provider>
   );
