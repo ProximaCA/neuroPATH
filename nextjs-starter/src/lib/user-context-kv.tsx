@@ -264,21 +264,23 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   // Handle referral system with notification
   const handleReferral = async (referrerId: number): Promise<boolean> => {
-    if (!user) {
-      console.log(`❌ [CLIENT] No user found for referral processing`);
-      return false;
-    }
-
     if (!telegramUser) {
       console.log(`❌ [CLIENT] No telegram user found for referral processing`);
       return false;
     }
 
     try {
-      console.log(`🎁 [CLIENT] Calling handleReferralBonus: ${referrerId} -> ${user.id}`);
-      console.log(`👤 [CLIENT] Current user state:`, { id: user.id, name: user.first_name, balance: user.light_balance });
+      // Get user data directly from store instead of relying on React state
+      const currentUser = await kvStore.getUser(telegramUser.id);
+      if (!currentUser) {
+        console.log(`❌ [CLIENT] No user found in database for ID: ${telegramUser.id}`);
+        return false;
+      }
+
+      console.log(`🎁 [CLIENT] Calling handleReferralBonus: ${referrerId} -> ${currentUser.id}`);
+      console.log(`👤 [CLIENT] Current user from DB:`, { id: currentUser.id, name: currentUser.first_name, balance: currentUser.light_balance });
       
-      const success = await kvStore.handleReferralBonus(referrerId, user.id);
+      const success = await kvStore.handleReferralBonus(referrerId, currentUser.id);
       console.log(`📊 [CLIENT] handleReferralBonus result:`, success);
 
       if (success) {

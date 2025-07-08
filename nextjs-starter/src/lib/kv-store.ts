@@ -276,12 +276,34 @@ export async function addReferral(referrerId: number, referredId: number): Promi
     console.log(`🔍 [SERVER] Checking existing referral: ${referrerId} -> ${referredId}`);
     console.log(`🔑 [SERVER] Referral key: ${KEYS.referralByUser(referrerId, referredId)}`);
     
+    // Проверяем Redis соединение
+    const redisClient = getRedisClient();
+    console.log(`🔗 [SERVER] Redis client available:`, !!redisClient);
+    console.log(`⚙️ [SERVER] Redis configured:`, isRedisConfigured);
+    
     // Проверяем, нет ли уже такого реферала
     const existingRef = await storage.get(KEYS.referralByUser(referrerId, referredId));
     console.log(`📋 [SERVER] Existing referral found:`, existingRef);
     
     if (existingRef) {
       console.log(`❌ [SERVER] Referral already exists for ${referrerId} -> ${referredId}`);
+      return false;
+    }
+    
+    // Проверяем, что оба пользователя существуют
+    const referrer = await getUser(referrerId);
+    const referred = await getUser(referredId);
+    
+    console.log(`👤 [SERVER] Referrer exists:`, !!referrer, referrer ? `(${referrer.first_name})` : '');
+    console.log(`👤 [SERVER] Referred exists:`, !!referred, referred ? `(${referred.first_name})` : '');
+    
+    if (!referrer) {
+      console.log(`❌ [SERVER] Referrer user not found: ${referrerId}`);
+      return false;
+    }
+    
+    if (!referred) {
+      console.log(`❌ [SERVER] Referred user not found: ${referredId}`);
       return false;
     }
     
