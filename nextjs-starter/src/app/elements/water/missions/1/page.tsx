@@ -103,7 +103,7 @@ export default function MissionPage() {
         addMeditationSeconds(currentTimeSeconds);
       }
     };
-  }, [currentTimeSeconds, hasFinishedMeditation]);
+  }, [currentTimeSeconds, hasFinishedMeditation, addMeditationSeconds]);
 
   const restartMeditation = () => {
     // При рестарте не сохраняем время, т.к. пользователь решил начать заново
@@ -115,7 +115,7 @@ export default function MissionPage() {
       isCompleted: false 
     }));
     setHasFinishedMeditation(false);
-    triggerHaptic('light');
+    triggerHaptic('selection');
     // Необходимо также сбросить время в самом плеере, если он есть
   };
 

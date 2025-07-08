@@ -9,7 +9,7 @@ import {
   Avatar,
   Background,
 } from "@once-ui-system/core";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { triggerHaptic } from "../lib/telegram";
 
 interface ReferralNotificationProps {
@@ -31,6 +31,13 @@ export function ReferralNotification({
 }: ReferralNotificationProps) {
   const [isVisible, setIsVisible] = useState(false);
 
+  const handleClose = useCallback(() => {
+    setIsVisible(false);
+    setTimeout(() => {
+      onClose();
+    }, 300); // Wait for animation
+  }, [onClose]);
+
   useEffect(() => {
     if (show) {
       setIsVisible(true);
@@ -41,14 +48,7 @@ export function ReferralNotification({
       }, 4000);
       return () => clearTimeout(timer);
     }
-  }, [show]);
-
-  const handleClose = () => {
-    setIsVisible(false);
-    setTimeout(() => {
-      onClose();
-    }, 300); // Wait for animation
-  };
+  }, [show, handleClose]);
 
   if (!show) return null;
 

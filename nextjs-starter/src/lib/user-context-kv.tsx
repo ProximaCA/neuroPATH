@@ -458,7 +458,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       console.log('No Telegram user found, setting isLoading to false');
       setIsLoading(false);
     }
-  }, [telegramUser, tgLoading]);
+  }, [telegramUser, tgLoading, handleReferral]);
 
   const value: UserContextType = {
     user,
