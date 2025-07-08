@@ -274,7 +274,7 @@ const MusicPlayer1: React.FC<MusicPlayer1Props> = ({ ...flex }) => {
   );
 };
 
-const MeditationPlayer: React.FC<MeditationPlayerProps> = ({ 
+const MeditationPlayer = React.forwardRef<HTMLAudioElement, MeditationPlayerProps>(({ 
   isPlaying = false,
   onPlayPause,
   currentTime = "0:00",
@@ -289,32 +289,35 @@ const MeditationPlayer: React.FC<MeditationPlayerProps> = ({
   canComplete = false,
   onAudioLoadedMetadata,
   ...flex 
-}) => {
+}, ref) => {
   const progressPercent = currentTime && totalTime ? 
     Math.round(((parseInt(currentTime.split(':')[0]) * 60 + parseInt(currentTime.split(':')[1])) / 
     (parseInt(totalTime.split(':')[0]) * 60 + parseInt(totalTime.split(':')[1]))) * 100) : 0;
 
-  // Audio element ref
-  const audioRef = React.useRef<HTMLAudioElement>(null);
+  // Audio element ref - now passed from parent
+  const internalAudioRef = React.useRef<HTMLAudioElement>(null);
+  const audioRef = ref || internalAudioRef;
 
   // Control audio playback
   React.useEffect(() => {
-    if (!audioRef.current) return;
+    const currentAudio = (audioRef as React.RefObject<HTMLAudioElement>)?.current;
+    if (!currentAudio) return;
     
     if (isPlaying) {
-      audioRef.current.play().catch((error) => {
+      currentAudio.play().catch((error) => {
         console.warn('Audio playback failed:', error);
         // Fallback: continue without audio
       });
     } else {
-      audioRef.current.pause();
+      currentAudio.pause();
     }
-  }, [isPlaying]);
+  }, [isPlaying, audioRef]);
 
   // Handle audio time updates
   const handleTimeUpdate = () => {
-    if (audioRef.current && onAudioTimeUpdate) {
-      onAudioTimeUpdate(audioRef.current.currentTime);
+    const currentAudio = (audioRef as React.RefObject<HTMLAudioElement>)?.current;
+    if (currentAudio && onAudioTimeUpdate) {
+      onAudioTimeUpdate(currentAudio.currentTime);
     }
   };
 
@@ -541,6 +544,8 @@ const MeditationPlayer: React.FC<MeditationPlayerProps> = ({
       `}</style>
     </Column>
   );
-};
+});
+
+MeditationPlayer.displayName = "MeditationPlayer";
 
 export { MusicPlayer1, MeditationPlayer };

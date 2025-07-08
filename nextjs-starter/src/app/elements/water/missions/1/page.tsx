@@ -20,6 +20,7 @@ import { MissionProgressTracker } from "../../../../../components/MissionProgres
 import { useUser } from "../../../../../lib/user-context-kv";
 import { triggerHaptic } from "../../../../../lib/telegram";
 import { Navigation } from "../../../../../components/Navigation";
+import React from "react";
 
 interface MissionProgress {
   currentStep: number;
@@ -54,6 +55,7 @@ export default function MissionPage() {
   const [timerInterval, setTimerInterval] = useState<NodeJS.Timeout | null>(null);
   const [totalDurationSeconds, setTotalDurationSeconds] = useState(300); // Default 5 minutes
   const [hasFinishedMeditation, setHasFinishedMeditation] = useState(false);
+  const audioRef = React.useRef<HTMLAudioElement>(null);
   
   const userProgress = getMissionProgress(missionId);
   const artifactEarned = hasArtifact('c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f');
@@ -108,6 +110,10 @@ export default function MissionPage() {
   const restartMeditation = () => {
     // При рестарте не сохраняем время, т.к. пользователь решил начать заново
     setCurrentTimeSeconds(0);
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play();
+    }
     setProgress(prev => ({ 
       ...prev, 
       isPlaying: true, 
@@ -116,7 +122,6 @@ export default function MissionPage() {
     }));
     setHasFinishedMeditation(false);
     triggerHaptic('selection');
-    // Необходимо также сбросить время в самом плеере, если он есть
   };
 
   const completeMission = useCallback(async () => {
@@ -124,9 +129,10 @@ export default function MissionPage() {
     triggerHaptic('notification', 'success');
     
     try {
-      // Сохраняем время сессии перед завершением миссии
-      if (currentTimeSeconds > 0) {
-        await addMeditationSeconds(currentTimeSeconds);
+      // Сохраняем полное время прослушанной сессии только при успешном завершении
+      if (currentTimeSeconds >= totalDurationSeconds) {
+        console.log(`💾 [CLIENT] Mission finished. Saving ${totalDurationSeconds} seconds.`);
+        await addMeditationSeconds(totalDurationSeconds);
       }
 
       setProgress(prev => ({ ...prev, isCompleted: true, isPlaying: false }));
@@ -166,16 +172,9 @@ export default function MissionPage() {
           const remaining = Math.max(0, totalDurationSeconds - newTime);
           setProgress(p => ({ ...p, timeRemaining: remaining }));
           
-          // Автосохранение каждые 10 секунд
-          if (newTime % 10 === 0 && newTime > 0) {
-            saveCurrentProgress();
-          }
-          
           // Auto complete when time is up
           if (newTime >= totalDurationSeconds) {
-            setHasFinishedMeditation(true);
-            setProgress(p => ({ ...p, isPlaying: false }));
-            triggerHaptic('notification', 'success');
+            handleAudioEnded();
             return totalDurationSeconds;
           }
           
@@ -194,7 +193,7 @@ export default function MissionPage() {
         clearInterval(timerInterval);
       }
     };
-  }, [progress.isPlaying, timerInterval, completeMission, totalDurationSeconds]);
+  }, [progress.isPlaying, timerInterval, totalDurationSeconds]);
 
   const startMission = async () => {
     triggerHaptic('impact', 'medium');
@@ -551,7 +550,7 @@ export default function MissionPage() {
               </Heading>
               <Button 
                 variant="secondary" 
-                prefixIcon="replay" 
+                prefixIcon="rotateCw" 
                 onClick={restartMeditation}
               >
                 Начать заново
@@ -589,6 +588,7 @@ export default function MissionPage() {
 
         {/* Meditation Player */}
         <MeditationPlayer 
+          ref={audioRef}
           isPlaying={progress.isPlaying}
           onPlayPause={togglePlayPause}
           currentTime={formatTime(currentTimeSeconds)}
