@@ -279,8 +279,6 @@ const MeditationPlayer = React.forwardRef<HTMLAudioElement, MeditationPlayerProp
   onPlayPause,
   currentTime = "0:00",
   totalTime = "5:00",
-  title = "Погружение",
-  description = "Вход в стихию Воды",
   audioSrc,
   onAudioTimeUpdate,
   onEnded,
@@ -378,15 +376,7 @@ const MeditationPlayer = React.forwardRef<HTMLAudioElement, MeditationPlayerProp
       />
       
       <Column gap="xl" align="center" style={{ position: "relative", zIndex: 1 }}>
-        {/* Header */}
-        <Column gap="s" align="center">
-          <Text variant="heading-strong-l" style={{ color: "#00A9FF" }} align="center">
-            {title}
-          </Text>
-          <Text variant="body-default-m" onBackground="neutral-weak" align="center">
-            {description}
-          </Text>
-        </Column>
+
 
         {/* Meditation Visual Circle */}
         <div
