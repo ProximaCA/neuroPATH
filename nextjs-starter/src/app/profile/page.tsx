@@ -700,6 +700,12 @@ export default function ProfilePage() {
                                 </Badge>
                               )}
                             </Row>
+                            <Row gap="xs" align="center" style={{ opacity: 0.8 }}>
+                              <Text style={{ fontSize: '0.75rem' }}>⏱️</Text>
+                              <Text variant="body-default-xs" onBackground="neutral-weak">
+                                {friend.total_meditation_minutes || 0} мин. в медитации
+                              </Text>
+                            </Row>
                             {friend.username && (
                               <Text variant="body-default-xs" onBackground="neutral-weak">
                                 @{friend.username}

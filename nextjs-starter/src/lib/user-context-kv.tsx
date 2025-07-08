@@ -57,6 +57,7 @@ interface UserContextType {
   
   // Actions
   updateUserProgress: (missionId: string, progress: Partial<kvStore.MissionProgress>) => Promise<void>;
+  addMeditationSeconds: (seconds: number) => Promise<void>;
   completeMission: (missionId: string) => Promise<any>;
   refreshUserData: () => Promise<void>;
   sendLight: (toUserId: number, amount: number) => Promise<{ success: boolean; error?: string; limitInfo?: DailyLimitInfo }>;
@@ -228,6 +229,22 @@ export function UserProvider({ children }: { children: ReactNode }) {
       console.error('Error updating progress:', error);
       const errMsg = (error && typeof error === 'object' && 'message' in error) ? (error as any).message : String(error);
       alert('Ошибка обновления прогресса: ' + errMsg);
+    }
+  };
+
+  // Add meditation seconds
+  const addMeditationSeconds = async (seconds: number) => {
+    if (!user || seconds <= 0) return;
+    
+    const newTotalMinutes = user.total_meditation_minutes + Math.floor(seconds / 60);
+    if (newTotalMinutes > user.total_meditation_minutes) {
+      console.log(`📈 [CLIENT] Adding ${seconds} seconds. New total minutes: ${newTotalMinutes}`);
+      const updatedUser = await kvStore.updateUser(user.id, {
+        total_meditation_minutes: newTotalMinutes,
+      });
+      if (updatedUser) {
+        setUser(updatedUser);
+      }
     }
   };
 
@@ -451,6 +468,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     missionProgress,
     userArtifacts,
     updateUserProgress,
+    addMeditationSeconds,
     completeMission,
     refreshUserData,
     sendLight,

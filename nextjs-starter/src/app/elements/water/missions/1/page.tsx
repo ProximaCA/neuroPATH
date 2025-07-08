@@ -30,7 +30,14 @@ interface MissionProgress {
 }
 
 export default function MissionPage() {
-  const { user, getMissionProgress, updateUserProgress, completeMission: completeUserMission, hasArtifact } = useUser();
+  const { 
+    user, 
+    getMissionProgress, 
+    updateUserProgress, 
+    completeMission: completeUserMission, 
+    hasArtifact,
+    addMeditationSeconds 
+  } = useUser();
   const missionId = 'd9e3f8a0-cb3a-4c9c-8f1a-6d5b7a8e9c0d'; // First Water mission
   
   const [progress, setProgress] = useState<MissionProgress>({
@@ -88,16 +95,28 @@ export default function MissionPage() {
     }
   };
 
+  // Сохраняем накопленные секунды при выходе со страницы
+  useEffect(() => {
+    return () => {
+      if (currentTimeSeconds > 0 && !hasFinishedMeditation) {
+        console.log(`💾 [CLIENT] Unmounting. Saving ${currentTimeSeconds} seconds of meditation.`);
+        addMeditationSeconds(currentTimeSeconds);
+      }
+    };
+  }, [currentTimeSeconds, hasFinishedMeditation]);
+
   const restartMeditation = () => {
+    // При рестарте не сохраняем время, т.к. пользователь решил начать заново
     setCurrentTimeSeconds(0);
     setProgress(prev => ({ 
       ...prev, 
-      isPlaying: false, 
+      isPlaying: true, 
       timeRemaining: totalDurationSeconds,
       isCompleted: false 
     }));
     setHasFinishedMeditation(false);
-    triggerHaptic('selection');
+    triggerHaptic('light');
+    // Необходимо также сбросить время в самом плеере, если он есть
   };
 
   const completeMission = useCallback(async () => {
@@ -105,10 +124,13 @@ export default function MissionPage() {
     triggerHaptic('notification', 'success');
     
     try {
-      // Update local progress first for immediate feedback
+      // Сохраняем время сессии перед завершением миссии
+      if (currentTimeSeconds > 0) {
+        await addMeditationSeconds(currentTimeSeconds);
+      }
+
       setProgress(prev => ({ ...prev, isCompleted: true, isPlaying: false }));
       
-      // Try to complete mission in database
       if (user && updateUserProgress) {
         await updateUserProgress(missionId, {
           status: 'completed',
@@ -133,7 +155,7 @@ export default function MissionPage() {
     } finally {
       setIsCompleting(false);
     }
-  }, [user, updateUserProgress, completeUserMission, missionId]);
+  }, [user, updateUserProgress, completeUserMission, missionId, currentTimeSeconds, addMeditationSeconds]);
 
   // Fallback timer for when audio is not available
   useEffect(() => {
@@ -215,41 +237,12 @@ export default function MissionPage() {
     }
   };
 
-  // Check if mission is already completed and load saved progress
+  // Check if mission is already completed
   useEffect(() => {
     if (userProgress?.status === 'completed' && artifactEarned) {
       setProgress(prev => ({ ...prev, isCompleted: true }));
-    } else if (userProgress?.status === 'in_progress' && userProgress.time_spent_seconds > 0) {
-      // Восстанавливаем сохраненный прогресс
-      console.log(`🔄 [CLIENT] Restoring meditation progress: ${userProgress.time_spent_seconds} seconds`);
-      setCurrentTimeSeconds(userProgress.time_spent_seconds);
-      setProgress(prev => ({ 
-        ...prev, 
-        currentStep: userProgress.current_step || 1,
-        timeRemaining: Math.max(0, totalDurationSeconds - userProgress.time_spent_seconds)
-      }));
-      setShowInstructions(false); // Сразу показываем интерфейс медитации
     }
-  }, [userProgress, artifactEarned, totalDurationSeconds]);
-
-  // Сохранение прогресса при выходе со страницы
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (currentTimeSeconds > 0) {
-        saveCurrentProgress();
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      // Сохраняем при размонтировании компонента
-      if (currentTimeSeconds > 0) {
-        saveCurrentProgress();
-      }
-    };
-  }, [currentTimeSeconds]);
+  }, [userProgress, artifactEarned]);
 
   if (showInstructions) {
     return (
@@ -552,103 +545,110 @@ export default function MissionPage() {
         <Column maxWidth="l" gap="xl">
           {/* Header with progress */}
           <Column gap="m">
-            <Row gap="s" align="center" horizontal="space-between">
-              <Text variant="body-default-s" onBackground="neutral-weak">
+            <Row horizontal="space-between" vertical="center">
+              <Heading variant="display-strong-l" style={{ color: "#00A9FF" }}>
                 {formatTime(progress.timeRemaining)}
-              </Text>
-            </Row>
-
-            {/* Progress Bar */}
-            <div
-              style={{ 
-                width: "100%",
-                height: "6px",
-                backgroundColor: "var(--neutral-alpha-weak)",
-                borderRadius: "3px",
-                overflow: "hidden"
-              }}
-            >
-            </div>
-          </Column>
-
-          {/* Current Step Info */}
-          <Card radius="l" padding="l" background="neutral-alpha-weak" align="center">
-            <Column gap="s" align="center">
-              <Heading variant="heading-strong-l" style={{ color: "#00A9FF" }}>
-                {missionSteps[progress.currentStep - 1]?.title || "Подготовка"}
               </Heading>
-              <Text variant="body-default-m" onBackground="neutral-weak" align="center">
-                {missionSteps[progress.currentStep - 1]?.description || "Готовимся к началу"}
-              </Text>
-            </Column>
-          </Card>
-
-          {/* Meditation Player */}
-          <MeditationPlayer 
-            isPlaying={progress.isPlaying}
-            onPlayPause={togglePlayPause}
-            currentTime={formatTime(currentTimeSeconds)}
-            totalTime={formatTime(totalDurationSeconds)}
-            description="Медитация стихии Воды"
-            audioSrc="/audio/water-meditation.mp3"
-            onAudioTimeUpdate={handleAudioTimeUpdate}
-            onEnded={handleAudioEnded}
-            onRestart={restartMeditation}
-            isCompleted={progress.isCompleted}
-            canComplete={hasFinishedMeditation}
-            onAudioLoadedMetadata={handleAudioLoadedMetadata}
-          />
-
-          {/* Meditation Visual */}
-          <Column align="center" gap="l">
-
-           
-            
-            <Text 
-              variant="body-default-l" 
-              onBackground="neutral-weak" 
-              align="center"
-              style={{
-                fontStyle: "italic",
-                opacity: 0.8
-              }}
-            >
-              &ldquo;Ты — вода. Не борись. Стань потоком.&rdquo;
+              <Button 
+                variant="secondary" 
+                prefixIcon="replay" 
+                onClick={restartMeditation}
+              >
+                Начать заново
+              </Button>
+            </Row>
+            <Text variant="body-default-l" onBackground="neutral-weak">
+              Осталось до конца медитации
             </Text>
           </Column>
 
-          {/* Complete Button - only show when meditation is finished */}
-          {hasFinishedMeditation && (
-            <Column gap="m" align="center" fillWidth>
-              <Button
-                variant="primary"
-                size="l"
-                fillWidth
-                style={{ 
-                  backgroundColor: "#00A9FF",
-                  borderColor: "#00A9FF",
-                  maxWidth: "300px"
-                }}
-                onClick={completeMission}
-                disabled={isCompleting}
-              >
-                {isCompleting ? "Завершение..." : "Завершить медитацию"}
-              </Button>
-              <Text variant="body-default-s" onBackground="neutral-weak" align="center">
-                Медитация завершена! Можете получить награду
-              </Text>
-            </Column>
-          )}
-
-          {/* Instructions when meditation not finished */}
-          {!hasFinishedMeditation && (
-            <Column gap="s" align="center" fillWidth>
-              <Text variant="body-default-s" onBackground="neutral-weak" align="center">
-                Прослушайте медитацию до конца, чтобы завершить миссию
-              </Text>
-            </Column>
-          )}
+          {/* Progress Bar */}
+          <div
+            style={{ 
+              width: "100%",
+              height: "6px",
+              backgroundColor: "var(--neutral-alpha-weak)",
+              borderRadius: "3px",
+              overflow: "hidden"
+            }}
+          >
+          </div>
         </Column>
+
+        {/* Current Step Info */}
+        <Card radius="l" padding="l" background="neutral-alpha-weak" align="center">
+          <Column gap="s" align="center">
+            <Heading variant="heading-strong-l" style={{ color: "#00A9FF" }}>
+              {missionSteps[progress.currentStep - 1]?.title || "Подготовка"}
+            </Heading>
+            <Text variant="body-default-m" onBackground="neutral-weak" align="center">
+              {missionSteps[progress.currentStep - 1]?.description || "Готовимся к началу"}
+            </Text>
+          </Column>
+        </Card>
+
+        {/* Meditation Player */}
+        <MeditationPlayer 
+          isPlaying={progress.isPlaying}
+          onPlayPause={togglePlayPause}
+          currentTime={formatTime(currentTimeSeconds)}
+          totalTime={formatTime(totalDurationSeconds)}
+          description="Медитация стихии Воды"
+          audioSrc="/audio/water-meditation.mp3"
+          onAudioTimeUpdate={handleAudioTimeUpdate}
+          onEnded={handleAudioEnded}
+          onRestart={restartMeditation}
+          isCompleted={progress.isCompleted}
+          canComplete={hasFinishedMeditation}
+          onAudioLoadedMetadata={handleAudioLoadedMetadata}
+        />
+
+        {/* Meditation Visual */}
+        <Column align="center" gap="l">
+          <Text 
+            variant="body-default-l" 
+            onBackground="neutral-weak" 
+            align="center"
+            style={{
+              fontStyle: "italic",
+              opacity: 0.8
+            }}
+          >
+            &ldquo;Ты — вода. Не борись. Стань потоком.&rdquo;
+          </Text>
+        </Column>
+
+        {/* Complete Button - only show when meditation is finished */}
+        {hasFinishedMeditation && (
+          <Column gap="m" align="center" fillWidth>
+            <Button
+              variant="primary"
+              size="l"
+              fillWidth
+              style={{ 
+                backgroundColor: "#00A9FF",
+                borderColor: "#00A9FF",
+                maxWidth: "300px"
+              }}
+              onClick={completeMission}
+              disabled={isCompleting}
+            >
+              {isCompleting ? "Завершение..." : "Завершить медитацию"}
+            </Button>
+            <Text variant="body-default-s" onBackground="neutral-weak" align="center">
+              Медитация завершена! Можете получить награду
+            </Text>
+          </Column>
+        )}
+
+        {/* Instructions when meditation not finished */}
+        {!hasFinishedMeditation && (
+          <Column gap="s" align="center" fillWidth>
+            <Text variant="body-default-s" onBackground="neutral-weak" align="center">
+              Прослушайте медитацию до конца, чтобы завершить миссию
+            </Text>
+          </Column>
+        )}
       </Column>
 
       <style jsx>{`

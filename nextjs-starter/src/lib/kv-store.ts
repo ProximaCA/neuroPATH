@@ -360,12 +360,10 @@ export async function completeMission(userId: number, missionId: string): Promis
     if (!user) throw new Error('User not found');
     
     const lightEarned = 10;
-    const meditationMinutes = 5;
     
     await updateUser(userId, {
       light_balance: user.light_balance + lightEarned,
       total_missions_completed: user.total_missions_completed + 1,
-      total_meditation_minutes: user.total_meditation_minutes + meditationMinutes,
     });
     
     // Выдаём артефакт (если это первая миссия воды)
@@ -380,7 +378,7 @@ export async function completeMission(userId: number, missionId: string): Promis
     
     return {
       light_earned: lightEarned,
-      meditation_minutes: meditationMinutes,
+      meditation_minutes: 0,
       artifact_earned: artifactEarned,
     };
   } catch (error) {
