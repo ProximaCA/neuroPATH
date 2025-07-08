@@ -269,8 +269,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
       return false;
     }
 
+    if (!telegramUser) {
+      console.log(`❌ [CLIENT] No telegram user found for referral processing`);
+      return false;
+    }
+
     try {
       console.log(`🎁 [CLIENT] Calling handleReferralBonus: ${referrerId} -> ${user.id}`);
+      console.log(`👤 [CLIENT] Current user state:`, { id: user.id, name: user.first_name, balance: user.light_balance });
+      
       const success = await kvStore.handleReferralBonus(referrerId, user.id);
       console.log(`📊 [CLIENT] handleReferralBonus result:`, success);
 
@@ -366,24 +373,27 @@ export function UserProvider({ children }: { children: ReactNode }) {
       console.log('Initializing user with Telegram data:', telegramUser);
       initializeUser(telegramUser).then(() => {
         console.log('User initialized, loading user data...');
-        loadUserData(telegramUser.id).finally(() => {
-          console.log('User data loaded, setting isLoading to false');
-          setIsLoading(false);
+        return loadUserData(telegramUser.id);
+      }).then(() => {
+        console.log('User data loaded, setting isLoading to false');
+        setIsLoading(false);
+        
+        // Check for referral parameters in URL AFTER user is fully initialized
+        if (typeof window !== 'undefined') {
+          console.log('🔍 Checking for referral parameters...');
+          console.log('🌐 Current URL:', window.location.href);
+          console.log('🔗 Search params:', window.location.search);
+          const urlParams = new URLSearchParams(window.location.search);
+          console.log('📋 All URL params:', Object.fromEntries(urlParams.entries()));
           
-          // Check for referral parameters in URL
-          if (typeof window !== 'undefined') {
-            console.log('🔍 Checking for referral parameters...');
-            console.log('🌐 Current URL:', window.location.href);
-            console.log('🔗 Search params:', window.location.search);
-            const urlParams = new URLSearchParams(window.location.search);
-            console.log('📋 All URL params:', Object.fromEntries(urlParams.entries()));
-            
-            const referrerId = urlParams.get('referrer');
-            console.log('👥 Referrer ID from URL:', referrerId);
-            console.log('🆔 Current user ID:', telegramUser.id.toString());
-            
-            if (referrerId && referrerId !== telegramUser.id.toString()) {
-              console.log('🎁 Processing referral from:', referrerId);
+          const referrerId = urlParams.get('referrer');
+          console.log('👥 Referrer ID from URL:', referrerId);
+          console.log('🆔 Current user ID:', telegramUser.id.toString());
+          
+          if (referrerId && referrerId !== telegramUser.id.toString()) {
+            console.log('🎁 Processing referral from:', referrerId);
+            // Add a small delay to ensure user state is fully updated
+            setTimeout(() => {
               handleReferral(parseInt(referrerId)).then((success) => {
                 if (success) {
                   console.log('✅ Referral processed successfully');
@@ -391,11 +401,14 @@ export function UserProvider({ children }: { children: ReactNode }) {
                   console.log('❌ Referral processing failed or already exists');
                 }
               });
-            } else {
-              console.log('❌ No valid referral found or self-referral');
-            }
+            }, 100);
+          } else {
+            console.log('❌ No valid referral found or self-referral');
           }
-        });
+        }
+      }).catch((error) => {
+        console.error('Error during user initialization:', error);
+        setIsLoading(false);
       });
     } else if (!tgLoading) {
       console.log('No Telegram user found, setting isLoading to false');
