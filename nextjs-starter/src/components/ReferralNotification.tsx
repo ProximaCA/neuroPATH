@@ -73,8 +73,9 @@ export function ReferralNotification({
     >
       <div
         style={{
-          transform: isVisible ? 'scale(1) translateY(0)' : 'scale(0.8) translateY(20px)',
-          transition: 'all 0.3s ease',
+          transform: isVisible ? 'scale(1)' : 'scale(0.9)',
+          opacity: isVisible ? 1 : 0,
+          transition: 'all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)',
           maxWidth: '400px',
           width: '100%',
           position: 'relative'
@@ -170,20 +171,6 @@ export function ReferralNotification({
             >
               ⭐
             </div>
-
-            {/* Close Button */}
-            <Button
-              variant="secondary"
-              size="s"
-              onClick={handleClose}
-              style={{
-                backgroundColor: 'rgba(0, 169, 255, 0.2)',
-                borderColor: '#00A9FF',
-                marginTop: '8px'
-              }}
-            >
-              Отлично!
-            </Button>
           </Column>
         </Card>
 

@@ -690,15 +690,7 @@ export default function ProfilePage() {
                               <Text variant="label-default-m">
                                 {friend.first_name} {friend.last_name || ''}
                               </Text>
-                              {isInvited ? (
-                                <Badge style={{ backgroundColor: "#4CAF50", color: "white", fontSize: "0.6rem" }}>
-                                  Пригласили
-                                </Badge>
-                              ) : (
-                                <Badge style={{ backgroundColor: "#FF9800", color: "white", fontSize: "0.6rem" }}>
-                                  Пригласил вас
-                                </Badge>
-                              )}
+                            
                             </Row>
                             <Row gap="xs" align="center" style={{ opacity: 0.8 }}>
                               <Text style={{ fontSize: '0.75rem' }}>⏱️</Text>
@@ -732,11 +724,7 @@ export default function ProfilePage() {
                                dailyLimitInfo?.canSend === false ? "📵" :
                                "💫 10"}
                             </Button>
-                            {isInvited && (
-                              <Badge style={{ backgroundColor: "#4CAF50", color: "white" }}>
-                                +100 за приглашение
-                              </Badge>
-                            )}
+                        
                           </Column>
                         </Row>
                       );
