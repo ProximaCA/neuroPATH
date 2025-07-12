@@ -59,7 +59,7 @@ export default function ElementPage() {
         {
           id: 'a7b2c1d0-e8f9-4a3b-9c8d-7e6f5a4b3c2d',
           name: 'Растворение',
-          description: 'Освобождение от страхов и тревог через визуализацию',
+          description: 'Освобождение от страхов и тревог через технику растворения',
           order: 2,
           audio_url: null
         },
@@ -129,7 +129,7 @@ export default function ElementPage() {
       },
       { 
         name: "Слеза Сочувствия", 
-        src: "/images/artifacts/lock.jpg",
+        src: "/images/artifacts/water_artifact_2.jpg",
         description: "Кристаллизованная эмпатия. Открывает способность чувствовать связь с другими через собственную уязвимость."
       },
       { 
@@ -149,7 +149,7 @@ export default function ElementPage() {
   const getMissionImage = (missionIndex: number) => {
     const images = [
       "/images/elements/water_mission_1.jpg", // Погружение - есть
-      "/images/demo.jpg", // Растворение - fallback пока нет картинки
+      "/images/elements/water_mission_2.jpg", // Растворение - fallback пока нет картинки
       "/images/demo.jpg"  // Поток принятия - fallback пока нет картинки
     ];
     return images[missionIndex] || "/images/demo.jpg";

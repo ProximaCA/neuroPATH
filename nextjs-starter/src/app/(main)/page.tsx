@@ -106,10 +106,37 @@ interface Element {
 }
 
 export default function Home() {
-  const { user, isLoading } = useUser();
+  const { user, missionProgress, isLoading } = useUser();
   const [elements, setElements] = useState<Element[]>(ELEMENTS_DATA);
   const [hoveredElement, setHoveredElement] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Вычисляем прогресс по воде на основе missionProgress
+  const waterElementId = "f2e4e168-e5a9-4a9c-b829-3e2c1a8a0b1a";
+  const waterMissionIds = [
+    "d9e3f8a0-cb3a-4c9c-8f1a-6d5b7a8e9c0d", // 1
+    "b2e3f8a0-cb3a-4c9c-8f1a-6d5b7a8e9c0e", // 2
+    // Добавь id третьей миссии, если появится
+  ];
+  const waterMissionsCompleted = missionProgress
+    ? missionProgress.filter(p => waterMissionIds.includes(p.mission_id) && p.status === 'completed').length
+    : 0;
+  const waterMissionsTotal = waterMissionIds.length;
+  const waterProgressPercent = Math.round((waterMissionsCompleted / waterMissionsTotal) * 100);
+
+  // Обновляем элементы с актуальным прогрессом
+  useEffect(() => {
+    setElements(prev => prev.map(el => {
+      if (el.id === waterElementId) {
+        return {
+          ...el,
+          progress: waterProgressPercent,
+          missions: waterMissionsTotal,
+        };
+      }
+      return el;
+    }));
+  }, [waterProgressPercent, waterMissionsTotal]);
 
   const handleElementClick = (elementId: string, isUnlocked: boolean) => {
     triggerHaptic('impact', 'light');
