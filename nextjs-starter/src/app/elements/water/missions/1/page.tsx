@@ -428,6 +428,21 @@ export default function MissionPage() {
               <Text variant="body-default-l" onBackground="neutral-weak" align="center">
                 Вы успешно прошли первую медитацию стихии Воды и получили награды!
               </Text>
+              <Button
+                variant="secondary"
+                fillWidth
+                onClick={() => {
+                  setShowInstructions(false);
+                  setProgress(prev => ({ ...prev, isCompleted: false, isPlaying: true, currentStep: 1, timeRemaining: totalDurationSeconds }));
+                  setCurrentTimeSeconds(0);
+                  if (audioRef.current) {
+                    audioRef.current.currentTime = 0;
+                    audioRef.current.play();
+                  }
+                }}
+              >
+                Слушать ещё раз
+              </Button>
             </Column>
 
             {/* Rewards Earned */}

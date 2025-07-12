@@ -15,6 +15,8 @@ import {
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useUser } from "../../../lib/user-context-kv";
+import type { MissionProgress } from "../../../lib/kv-store";
 
 interface Mission {
   id: string;
@@ -36,6 +38,7 @@ interface Element {
 export default function ElementPage() {
   const params = useParams();
   const elementId = params.element as string;
+  const { missionProgress } = useUser();
   const [element, setElement] = useState<Element | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -116,8 +119,13 @@ export default function ElementPage() {
     );
   }
 
-  const completedMissions = 0; // TODO: Получать из mission_progress
-  const progressPercent = (completedMissions / (element.missions?.length || 1)) * 100;
+  // Считаем количество завершённых миссий по элементу
+  let completedMissions = 0;
+  if (element && missionProgress && element.missions) {
+    const missionIds = element.missions.map(m => m.id);
+    completedMissions = missionProgress.filter((p: MissionProgress) => missionIds.includes(p.mission_id) && p.status === 'completed').length;
+  }
+  const progressPercent = (completedMissions / (element?.missions?.length || 1)) * 100;
 
   // Получаем имена артефактов для каждой миссии
   const getArtifactInfo = (missionIndex: number) => {
