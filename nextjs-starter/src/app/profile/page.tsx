@@ -363,21 +363,7 @@ export default function ProfilePage() {
 
         <Column fillWidth center padding="l" gap="xl" style={{ position: "relative", zIndex: 1, minHeight: "60vh" }}>
           <Column gap="m" align="center">
-            <div
-              style={{
-                width: "80px",
-                height: "80px",
-                borderRadius: "50%",
-                background: "linear-gradient(135deg, #00A9FF, #0080CC)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "2rem",
-                animation: "pulse 2s infinite"
-              }}
-            >
-              👤Профиль
-            </div>
+       
             <Text variant="heading-strong-l" style={{ color: "#00A9FF" }}>
               Загрузка профиля...
             </Text>

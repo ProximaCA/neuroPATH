@@ -233,6 +233,11 @@ export default function MissionPage() {
     }
   }, [userProgress, artifactEarned]);
 
+  const mission2Id = 'b2e3f8a0-cb3a-4c9c-8f1a-6d5b7a8e9c0e';
+  const mission2Cost = 100;
+  const mission2Progress = getMissionProgress(mission2Id);
+  const canBuyMission2 = user && user.light_balance >= mission2Cost && (!mission2Progress || mission2Progress.status === 'not_started');
+
   if (showInstructions) {
     return (
       <Column fillWidth style={{ minHeight: "100vh" }}>
@@ -273,9 +278,7 @@ export default function MissionPage() {
                   🌊
                 </Text>
                 <Column gap="xs">
-                  <Heading variant="display-strong-l" style={{ color: "#00A9FF" }}>
-                    Погружение
-                  </Heading>
+                
                   <Badge>5 мин • Первый контакт</Badge>
                 </Column>
               </Row>
@@ -412,7 +415,6 @@ export default function MissionPage() {
           showBackButton 
           backHref="/elements/water" 
           backText="К миссиям"
-          title="Завершено!"
         />
         
         <Column fillWidth center padding="l" gap="xl" style={{ position: "relative", zIndex: 1 }}>
@@ -489,8 +491,33 @@ export default function MissionPage() {
                   <Text variant="heading-strong-s" style={{ color: "#00A9FF" }}>
                     Следующая миссия
                   </Text>
+                  {mission2Progress && mission2Progress.status !== 'not_started' ? (
+                    <Link href="/elements/water/missions/2">
+                      <Button variant="primary" fillWidth arrowIcon>
+                        Перейти к миссии 2
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Button
+                      variant="secondary"
+                      fillWidth
+                      prefixIcon="zap"
+                      disabled={!canBuyMission2}
+                      onClick={async () => {
+                        if (!user) return;
+                        await updateUserProgress(mission2Id, { status: 'not_started', progress_percentage: 0, current_step: 0, total_steps: 6, time_spent_seconds: 0, attempts: 0 });
+                        await fetch('/api/user/update-light', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ userId: user.id, amount: -mission2Cost })
+                        });
+                      }}
+                    >
+                      Открыть за 100 СВЕТА
+                    </Button>
+                  )}
                   <Text variant="body-default-s" onBackground="neutral-weak">
-                    Стоимость: 10 СВЕТА • Убедитесь что у вас достаточно света для продолжения
+                    Стоимость: 100 СВЕТА • Убедитесь, что у вас достаточно света для продолжения
                   </Text>
                 </Column>
               </Card>
