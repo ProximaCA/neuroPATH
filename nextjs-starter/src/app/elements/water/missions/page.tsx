@@ -64,15 +64,11 @@ export default function WaterMissionsPage() {
     if (!canUnlock(mission)) return;
     setUnlocking(mission.id);
     triggerHaptic('impact', 'medium');
-    // Списываем свет
-    await updateUserProgress(mission.id, { status: 'not_started', progress_percentage: 0, current_step: 0, total_steps: 5, time_spent_seconds: 0, attempts: 0 });
-    // Обновляем баланс пользователя
+    // Списываем свет через user context
+    await updateUserProgress(mission.id, { status: 'not_started', progress_percentage: 0, current_step: 0, total_steps: 6, time_spent_seconds: 0, attempts: 0 });
     if (user) {
-      await fetch('/api/user/update-light', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, amount: -mission.cost })
-      });
+      // Обновляем баланс напрямую через kvStore (user context)
+      await import('../../../../lib/kv-store').then(kvStore => kvStore.updateUser(user.id, { light_balance: user.light_balance - mission.cost }));
     }
     setUnlocking(null);
   };
@@ -90,6 +86,7 @@ export default function WaterMissionsPage() {
           {MISSIONS.map((mission) => {
             const unlocked = isMissionUnlocked(mission);
             const progress = getMissionProgress(mission.id);
+            const canBuy = canUnlock(mission) && (!progress || progress.status === 'not_started');
             return (
               <Card key={mission.id} radius="l" padding="l" border="neutral-alpha-medium" fillWidth>
                 <Row gap="m" align="center">
@@ -117,12 +114,12 @@ export default function WaterMissionsPage() {
                       <Button
                         variant="secondary"
                         size="s"
-                        prefixIcon="zap"
-                        disabled={!canUnlock(mission) || unlocking === mission.id}
+                        prefixIcon="star"
+                        disabled={!canBuy || unlocking === mission.id}
                         loading={unlocking === mission.id}
                         onClick={() => handleUnlock(mission)}
                       >
-                        Открыть за {mission.cost} света
+                        Открыть за {mission.cost} СВЕТА
                       </Button>
                     )}
                   </Column>

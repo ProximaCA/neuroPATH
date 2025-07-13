@@ -264,7 +264,8 @@ export default function MissionPage() {
               <Column gap="m">
                 <Heading variant="heading-strong-l">О миссии</Heading>
                 <Text variant="body-default-l" onBackground="neutral-weak">
-                  Вторая медитация стихии Воды. Погружение в глубокое принятие себя и своих эмоций. Через дыхание, визуализацию и аффирмации ты научишься принимать себя полностью.
+                  Вторая медитация стихии Воды. 
+                   в глубокое принятие себя и своих эмоций. Через дыхание, визуализацию и аффирмации ты научишься принимать себя полностью.
                 </Text>
                 <Column gap="s">
                   <Text variant="heading-strong-s">Что вас ждет:</Text>
@@ -360,7 +361,6 @@ export default function MissionPage() {
           showBackButton
           backHref="/elements/water/missions"
           backText="К миссиям"
-          title="Завершено!"
         />
         <Column fillWidth center padding="l" gap="xl" style={{ position: "relative", zIndex: 1 }}>
           <Column maxWidth="s" gap="xl" align="center">
