@@ -46,7 +46,7 @@ const MISSIONS = [
 ];
 
 export default function WaterMissionsPage() {
-  const { user, getMissionProgress, updateUserProgress, isLoading } = useUser();
+  const { user, getMissionProgress, updateUserProgress, isLoading, updateUser, refreshUserData } = useUser();
   const [unlocking, setUnlocking] = useState<string | null>(null);
 
   const isMissionUnlocked = (mission: any) => {
@@ -64,11 +64,10 @@ export default function WaterMissionsPage() {
     if (!canUnlock(mission)) return;
     setUnlocking(mission.id);
     triggerHaptic('impact', 'medium');
-    // Списываем свет через user context
     await updateUserProgress(mission.id, { status: 'not_started', progress_percentage: 0, current_step: 0, total_steps: 6, time_spent_seconds: 0, attempts: 0 });
-    if (user) {
-      // Обновляем баланс напрямую через kvStore (user context)
-      await import('../../../../lib/kv-store').then(kvStore => kvStore.updateUser(user.id, { light_balance: user.light_balance - mission.cost }));
+    if (user && updateUser) {
+      await updateUser(user.id, { light_balance: user.light_balance - mission.cost });
+      await refreshUserData();
     }
     setUnlocking(null);
   };

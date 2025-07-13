@@ -420,6 +420,19 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Обновление пользователя (например, баланс)
+  const updateUser = async (userId: number, updates: Partial<kvStore.UserData>) => {
+    try {
+      const updatedUser = await kvStore.updateUser(userId, updates);
+      if (updatedUser) {
+        setUser(updatedUser);
+        await loadUserData(userId);
+      }
+    } catch (error) {
+      console.error('Error updating user:', error);
+    }
+  };
+
   // Helper functions
   const getMissionProgress = (missionId: string): kvStore.MissionProgress | null => {
     return missionProgress.find(p => p.mission_id === missionId) || null;
@@ -438,7 +451,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     return 10;
   };
 
-  const value: UserContextType = {
+  const value: UserContextType & { updateUser: typeof updateUser } = {
     user,
     telegramUser,
     isLoading: isLoading || tgLoading,
@@ -457,6 +470,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     getNextMissionCost,
     getDailyLightSent,
     showReferralNotification,
+    updateUser,
   };
 
   return (
