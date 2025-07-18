@@ -287,49 +287,31 @@ export function UserProvider({ children }: { children: ReactNode }) {
     if (!user) return;
 
     try {
-      // Получаем текущее значение time_spent_seconds для миссии
-      const current = missionProgress.find(p => p.mission_id === missionId);
-      const prevTime = current?.time_spent_seconds || 0;
-      const newTime = progress.time_spent_seconds ?? prevTime;
-      const deltaSeconds = newTime - prevTime;
-      const deltaMinutes = Math.floor(deltaSeconds / 60);
-
-      console.log(`⏱️ [CLIENT] Time tracking for mission ${missionId}:`, {
-        prevTime,
-        newTime,
-        deltaSeconds,
-        deltaMinutes,
-        currentTotalMinutes: user.total_meditation_minutes
-      });
-
       const updatedProgress = await kvStore.updateMissionProgress(user.id, missionId, progress);
       
       if (updatedProgress) {
         // Update local state
-        setMissionProgress(prev =>
-          prev.map(p => p.mission_id === missionId ? updatedProgress : p)
-        );
+        setMissionProgress(prev => {
+          const exists = prev.some(p => p.mission_id === missionId);
+          if (exists) {
+            return prev.map(p => p.mission_id === missionId ? updatedProgress : p);
+          } else {
+            return [...prev, updatedProgress];
+          }
+        });
 
-        // Update user's total meditation time только на дельту
-        if (deltaMinutes > 0) {
-          console.log(`📈 [CLIENT] Adding ${deltaMinutes} minutes to user total`);
+        // Обновляем данные пользователя только если изменилась активность
+        if (progress.last_activity) {
           const updatedUser = await kvStore.updateUser(user.id, {
-            total_meditation_minutes: user.total_meditation_minutes + deltaMinutes,
-            last_activity: new Date().toISOString(),
+            last_activity: progress.last_activity,
           });
-
           if (updatedUser) {
-            console.log(`✅ [CLIENT] User total minutes updated: ${updatedUser.total_meditation_minutes}`);
             setUser(updatedUser);
           }
-        } else {
-          console.log(`⏭️ [CLIENT] No minutes to add (deltaMinutes: ${deltaMinutes})`);
         }
       }
     } catch (error) {
       console.error('Error updating progress:', error);
-      const errMsg = (error && typeof error === 'object' && 'message' in error) ? (error as any).message : String(error);
-      alert('Ошибка обновления прогресса: ' + errMsg);
     }
   };
 

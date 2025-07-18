@@ -27,12 +27,11 @@ const MISSIONS = [
       image: "/images/artifacts/pearl.jpg"
     },
     order: 1,
-    cost: 0,
-    unlockedByDefault: true,
+    cost: 0, // Бесплатная
   },
   {
     id: "b2e3f8a0-cb3a-4c9c-8f1a-6d5b7a8e9c0e",
-    title: "Глубина принятия",
+    title: "Растворение",
     description: "Вторая медитация. Погружение в принятие себя.",
     duration: 7,
     artifact: {
@@ -40,8 +39,31 @@ const MISSIONS = [
       image: "/images/artifacts/crystal.jpg"
     },
     order: 2,
-    cost: 100,
-    unlockedByDefault: false,
+    cost: 100, // +100
+  },
+  {
+    id: "c3e4f9a1-db4a-5c9d-9f2a-7d6b8a9e0c1f",
+    title: "Течение",
+    description: "Третья медитация. Движение с потоком жизни.",
+    duration: 10,
+    artifact: {
+      name: "Лунный Камень",
+      image: "/images/artifacts/moonstone.jpg"
+    },
+    order: 3,
+    cost: 150, // +50
+  },
+  {
+    id: "d4e5f0a2-ec5b-6d0e-0f3b-8e7c9b0f1d2g",
+    title: "Глубина",
+    description: "Четвертая медитация. Погружение в глубины подсознания.",
+    duration: 12,
+    artifact: {
+      name: "Морская Звезда",
+      image: "/images/artifacts/starfish.jpg"
+    },
+    order: 4,
+    cost: 200, // +50
   }
 ];
 
@@ -49,19 +71,20 @@ export default function WaterMissionsPage() {
   const { user, getMissionProgress, updateUserProgress, isLoading, updateUser, refreshUserData, unlockMission } = useUser();
   const [unlocking, setUnlocking] = useState<string | null>(null);
 
-  const isMissionUnlocked = (mission: any) => {
-    if (mission.unlockedByDefault) return true;
-    if (!user) return false;
+  const hasMissionAccess = (mission: any) => {
+    // Бесплатные миссии всегда доступны
+    if (mission.cost === 0) return true;
+    // Если есть прогресс - миссия куплена
     const progress = getMissionProgress(mission.id);
-    return progress !== null; // Если есть прогресс, значит миссия разблокирована
+    return progress !== null;
   };
 
-  const canUnlock = (mission: any) => {
-    return user && user.light_balance >= mission.cost;
+  const canBuyMission = (mission: any) => {
+    return user && user.light_balance >= mission.cost && mission.cost > 0;
   };
 
-  const handleUnlock = async (mission: any) => {
-    if (!canUnlock(mission)) return;
+  const handleBuyMission = async (mission: any) => {
+    if (!canBuyMission(mission)) return;
     setUnlocking(mission.id);
     triggerHaptic('impact', 'medium');
     
@@ -71,7 +94,7 @@ export default function WaterMissionsPage() {
       await refreshUserData();
     } else {
       triggerHaptic('notification', 'error');
-      console.error('Ошибка разблокировки миссии:', result.error);
+      console.error('Ошибка покупки миссии:', result.error);
     }
     
     setUnlocking(null);
@@ -88,9 +111,11 @@ export default function WaterMissionsPage() {
         </Text>
         <Column gap="l" fillWidth>
           {MISSIONS.map((mission) => {
-            const unlocked = isMissionUnlocked(mission);
+            const hasAccess = hasMissionAccess(mission);
             const progress = getMissionProgress(mission.id);
-            const canBuy = canUnlock(mission) && (!progress || progress.status === 'not_started');
+            const needsToBuy = !hasAccess && mission.cost > 0;
+            const canBuy = canBuyMission(mission);
+            
             return (
               <Card key={mission.id} radius="l" padding="l" border="neutral-alpha-medium" fillWidth>
                 <Row gap="m" align="center">
@@ -100,31 +125,34 @@ export default function WaterMissionsPage() {
                     <Text variant="body-default-s" onBackground="neutral-weak">{mission.description}</Text>
                     <Row gap="s" align="center">
                       <Badge>{mission.duration} мин</Badge>
-                      {unlocked && progress && (
+                      {progress && (
                         <Badge background="brand-alpha-weak">
-                          {progress.status === 'completed' ? 'Завершено' : `${progress.progress_percentage || 0}%`}
+                          {progress.status === 'completed' ? '✓ Завершено' : `${progress.progress_percentage || 0}%`}
                         </Badge>
+                      )}
+                      {mission.cost > 0 && !hasAccess && (
+                        <Badge background="warning-alpha-weak">💰 {mission.cost} СВЕТА</Badge>
                       )}
                     </Row>
                   </Column>
                   <Column gap="s" align="end">
-                    {unlocked ? (
+                    {hasAccess ? (
                       <Link href={`/elements/water/missions/${mission.order}`}>
                         <Button variant="primary" size="s" arrowIcon>
-                          {progress && progress.status === 'completed' ? 'Повторить' : 'Перейти'}
+                          {progress?.status === 'completed' ? 'Повторить' : 'Начать'}
                         </Button>
                       </Link>
-                    ) : (
+                    ) : needsToBuy ? (
                       <Button
                         variant="secondary"
                         size="s"
                         disabled={!canBuy || unlocking === mission.id}
                         loading={unlocking === mission.id}
-                        onClick={() => handleUnlock(mission)}
+                        onClick={() => handleBuyMission(mission)}
                       >
                         ⚡ Открыть за {mission.cost} СВЕТА
                       </Button>
-                    )}
+                    ) : null}
                   </Column>
                 </Row>
               </Card>
