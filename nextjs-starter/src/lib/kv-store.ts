@@ -407,16 +407,16 @@ export async function handleReferralBonus(referrerId: number, referredId: number
     
     if (referrer) {
       await updateUser(referrerId, {
-        light_balance: referrer.light_balance + 100,
+        light_balance: referrer.light_balance + 30,
       });
-      console.log(`💰 Referrer ${referrerId} received +100 LIGHT (new balance: ${referrer.light_balance + 100})`);
+      console.log(`💰 Referrer ${referrerId} received +30 LIGHT (new balance: ${referrer.light_balance + 30})`);
     }
     
     if (referred) {
       await updateUser(referredId, {
-        light_balance: referred.light_balance + 100,
+        light_balance: referred.light_balance + 30,
       });
-      console.log(`💰 Referred ${referredId} received +100 LIGHT (new balance: ${referred.light_balance + 100})`);
+      console.log(`💰 Referred ${referredId} received +30 LIGHT (new balance: ${referred.light_balance + 30})`);
     }
     
     console.log(`✅ Referral bonus processed successfully: ${referrerId} -> ${referredId}`);

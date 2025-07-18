@@ -577,7 +577,7 @@ export default function ProfilePage() {
                       Пригласи друзей
                     </Heading>
                     <Text variant="body-default-s" onBackground="neutral-weak">
-                      За каждого приглашенного друга +100 СВЕТА
+                      За каждого приглашенного друга +30 СВЕТА
                     </Text>
                   </Column>
                 </Row>

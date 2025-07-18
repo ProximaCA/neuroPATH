@@ -121,11 +121,9 @@ export default function MissionPage() {
     triggerHaptic('notification', 'success');
     
     try {
-      // Сохраняем полное время прослушанной сессии только при успешном завершении
-      if (currentTimeSeconds >= totalDurationSeconds) {
-        console.log(`💾 [CLIENT] Mission finished. Saving ${totalDurationSeconds} seconds.`);
-        await addMeditationSeconds(totalDurationSeconds);
-      }
+      // Сохраняем реальное время прослушанной сессии при завершении
+      console.log(`💾 [CLIENT] Mission finished. Saving ${currentTimeSeconds} seconds (real time listened).`);
+      await addMeditationSeconds(currentTimeSeconds);
 
       setProgress(prev => ({ ...prev, isCompleted: true, isPlaying: false }));
       
@@ -135,7 +133,7 @@ export default function MissionPage() {
           completed_at: new Date().toISOString(),
           current_step: 5,
           progress_percentage: 100,
-          time_spent_seconds: 300, // 5 minutes
+          time_spent_seconds: currentTimeSeconds, // Реальное время прослушивания
         });
         
         // Try to call the complete mission function
@@ -234,6 +232,36 @@ export default function MissionPage() {
       setProgress(prev => ({ ...prev, isCompleted: true }));
     }
   }, [userProgress, artifactEarned]);
+
+  // Restore progress on page load
+  useEffect(() => {
+    if (userProgress && userProgress.status === 'in_progress') {
+      const savedTime = userProgress.time_spent_seconds || 0;
+      const savedStep = userProgress.current_step || 1;
+      const savedProgress = userProgress.progress_percentage || 0;
+      
+      console.log(`📥 [CLIENT] Restoring meditation progress: ${savedTime} seconds, step ${savedStep}, ${savedProgress}%`);
+      
+      setCurrentTimeSeconds(savedTime);
+      setProgress(prev => ({
+        ...prev,
+        currentStep: savedStep,
+        timeRemaining: Math.max(0, totalDurationSeconds - savedTime),
+        isPlaying: false, // Always start paused
+        isCompleted: false
+      }));
+      
+      // Set audio current time to match saved progress
+      if (audioRef.current && savedTime > 0) {
+        audioRef.current.currentTime = savedTime;
+      }
+      
+      // Don't show instructions if we have progress
+      if (savedTime > 0) {
+        setShowInstructions(false);
+      }
+    }
+  }, [userProgress, totalDurationSeconds]);
 
   const mission2Id = 'b2e3f8a0-cb3a-4c9c-8f1a-6d5b7a8e9c0e';
   const mission2Cost = 100;
@@ -598,6 +626,15 @@ export default function MissionPage() {
                 overflow: "hidden"
               }}
             >
+              <div
+                style={{
+                  width: `${Math.max(0, Math.min(100, ((currentTimeSeconds / totalDurationSeconds) * 100)))}%`,
+                  height: "100%",
+                  backgroundColor: "#00A9FF",
+                  borderRadius: "3px",
+                  transition: "width 0.5s ease-in-out"
+                }}
+              />
             </div>
           </Column>
 

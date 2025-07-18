@@ -46,14 +46,14 @@ const MISSIONS = [
 ];
 
 export default function WaterMissionsPage() {
-  const { user, getMissionProgress, updateUserProgress, isLoading, updateUser, refreshUserData } = useUser();
+  const { user, getMissionProgress, updateUserProgress, isLoading, updateUser, refreshUserData, unlockMission } = useUser();
   const [unlocking, setUnlocking] = useState<string | null>(null);
 
   const isMissionUnlocked = (mission: any) => {
     if (mission.unlockedByDefault) return true;
     if (!user) return false;
     const progress = getMissionProgress(mission.id);
-    return progress && progress.status !== 'not_started';
+    return progress !== null; // Если есть прогресс, значит миссия разблокирована
   };
 
   const canUnlock = (mission: any) => {
@@ -64,11 +64,16 @@ export default function WaterMissionsPage() {
     if (!canUnlock(mission)) return;
     setUnlocking(mission.id);
     triggerHaptic('impact', 'medium');
-    await updateUserProgress(mission.id, { status: 'not_started', progress_percentage: 0, current_step: 0, total_steps: 6, time_spent_seconds: 0, attempts: 0 });
-    if (user && updateUser) {
-      await updateUser(user.id, { light_balance: user.light_balance - mission.cost });
+    
+    const result = await unlockMission(mission.id, mission.cost);
+    if (result.success) {
+      triggerHaptic('notification', 'success');
       await refreshUserData();
+    } else {
+      triggerHaptic('notification', 'error');
+      console.error('Ошибка разблокировки миссии:', result.error);
     }
+    
     setUnlocking(null);
   };
 
@@ -113,12 +118,11 @@ export default function WaterMissionsPage() {
                       <Button
                         variant="secondary"
                         size="s"
-                        prefixIcon="star"
                         disabled={!canBuy || unlocking === mission.id}
                         loading={unlocking === mission.id}
                         onClick={() => handleUnlock(mission)}
                       >
-                        Открыть за {mission.cost} СВЕТА
+                        ⚡ Открыть за {mission.cost} СВЕТА
                       </Button>
                     )}
                   </Column>
