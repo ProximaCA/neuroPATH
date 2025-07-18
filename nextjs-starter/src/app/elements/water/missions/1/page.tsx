@@ -37,7 +37,9 @@ export default function MissionPage() {
     updateUserProgress, 
     completeMission: completeUserMission, 
     hasArtifact,
-    addMeditationSeconds 
+    addMeditationSeconds,
+    unlockMission,
+    refreshUserData
   } = useUser();
   const missionId = 'd9e3f8a0-cb3a-4c9c-8f1a-6d5b7a8e9c0d'; // First Water mission
   
@@ -494,19 +496,20 @@ export default function MissionPage() {
                     <Button
                       variant="secondary"
                       fillWidth
-                      prefixIcon="zap"
                       disabled={!canBuyMission2}
                       onClick={async () => {
                         if (!user) return;
-                        await updateUserProgress(mission2Id, { status: 'not_started', progress_percentage: 0, current_step: 0, total_steps: 6, time_spent_seconds: 0, attempts: 0 });
-                        await fetch('/api/user/update-light', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ userId: user.id, amount: -mission2Cost })
-                        });
+                        const result = await unlockMission(mission2Id, mission2Cost);
+                        if (result.success) {
+                          triggerHaptic('notification', 'success');
+                          await refreshUserData();
+                        } else {
+                          triggerHaptic('notification', 'error');
+                          console.error('Ошибка разблокировки миссии:', result.error);
+                        }
                       }}
                     >
-                      Открыть за 100 СВЕТА
+                      ⚡ Открыть за 100 СВЕТА
                     </Button>
                   )}
                   <Text variant="body-default-s" onBackground="neutral-weak">
@@ -574,11 +577,10 @@ export default function MissionPage() {
                 {formatTime(progress.timeRemaining)}
               </Heading>
               <Button 
-                variant="secondary" 
-                prefixIcon="refresh-cw" 
+                variant="secondary"
                 onClick={restartMeditation}
               >
-                Начать заново
+                🔄 Начать заново
               </Button>
             </Row>
             <Text variant="body-default-l" onBackground="neutral-weak">

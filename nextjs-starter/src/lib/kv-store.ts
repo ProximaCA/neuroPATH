@@ -132,6 +132,7 @@ const KEYS = {
   userReferrals: (userId: number) => `referrals:${userId}`,
   referralByUser: (referrerId: number, referredId: number) => `ref:${referrerId}:${referredId}`,
   dailyLightSent: (userId: number, date: string) => `daily_light:${userId}:${date}`,
+  userAvailableMissions: (userId: number) => `available_missions:${userId}`,
 };
 
 // Функции для работы с пользователями
@@ -506,4 +507,37 @@ export async function sendLight(
     console.error('Error sending light:', error);
     return { success: false, error: 'Ошибка при отправке света' };
   }
-} 
+}
+
+// Функции для работы с доступными миссиями
+export async function getUserAvailableMissions(userId: number): Promise<string[]> {
+  try {
+    const missions = await storage.get<string[]>(KEYS.userAvailableMissions(userId));
+    return missions || ['d9e3f8a0-cb3a-4c9c-8f1a-6d5b7a8e9c0d']; // Первая миссия всегда доступна
+  } catch (error) {
+    console.error('Error getting available missions:', error);
+    return ['d9e3f8a0-cb3a-4c9c-8f1a-6d5b7a8e9c0d'];
+  }
+}
+
+export async function addAvailableMission(userId: number, missionId: string): Promise<void> {
+  try {
+    const missions = await getUserAvailableMissions(userId);
+    if (!missions.includes(missionId)) {
+      missions.push(missionId);
+      await storage.set(KEYS.userAvailableMissions(userId), missions);
+    }
+  } catch (error) {
+    console.error('Error adding available mission:', error);
+  }
+}
+
+export async function isMissionAvailable(userId: number, missionId: string): Promise<boolean> {
+  try {
+    const missions = await getUserAvailableMissions(userId);
+    return missions.includes(missionId);
+  } catch (error) {
+    console.error('Error checking mission availability:', error);
+    return false;
+  }
+}

@@ -69,6 +69,8 @@ interface UserContextType {
   canAfford: (amount: number) => boolean;
   getNextMissionCost: (currentMissionId: string) => number;
   getDailyLightSent: () => Promise<DailyLimitInfo>;
+  isMissionAvailable: (missionId: string) => Promise<boolean>;
+  unlockMission: (missionId: string, cost: number) => Promise<{ success: boolean; error?: string }>;
   
   // Notification state
   showReferralNotification: (amount: number, friendName: string, friendAvatar?: string, type?: 'received' | 'sent') => void;
@@ -448,9 +450,54 @@ export function UserProvider({ children }: { children: ReactNode }) {
   };
 
   const getNextMissionCost = (currentMissionId: string): number => {
-    // All missions after the first one cost 10 light
-    return 10;
+    // All missions after the first one cost 100 light
+    return 100;
   };
+
+  const isMissionAvailable = useCallback(async (missionId: string): Promise<boolean> => {
+    if (!user) return false;
+    return await kvStore.isMissionAvailable(user.id, missionId);
+  }, [user]);
+
+  const unlockMission = useCallback(async (missionId: string, cost: number): Promise<{ success: boolean; error?: string }> => {
+    if (!user) return { success: false, error: 'Пользователь не найден' };
+    
+    if (user.light_balance < cost) {
+      return { success: false, error: 'Недостаточно света' };
+    }
+
+    try {
+      // Списываем свет
+      const updatedUser = await kvStore.updateUser(user.id, {
+        light_balance: user.light_balance - cost
+      });
+
+      if (!updatedUser) {
+        return { success: false, error: 'Ошибка при списании света' };
+      }
+
+      // Разблокируем миссию
+      await kvStore.addAvailableMission(user.id, missionId);
+
+      // Инициализируем прогресс миссии
+      await updateUserProgress(missionId, {
+        status: 'not_started',
+        progress_percentage: 0,
+        current_step: 0,
+        total_steps: 6,
+        time_spent_seconds: 0,
+        attempts: 0,
+      });
+
+      // Обновляем локальное состояние
+      setUser(updatedUser);
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error unlocking mission:', error);
+      return { success: false, error: 'Ошибка при разблокировке миссии' };
+    }
+  }, [user, updateUserProgress]);
 
   const value: UserContextType = {
     user,
@@ -470,6 +517,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
     canAfford,
     getNextMissionCost,
     getDailyLightSent,
+    isMissionAvailable,
+    unlockMission,
     showReferralNotification,
     updateUser,
   };
