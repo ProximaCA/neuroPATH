@@ -414,7 +414,7 @@ export default function MissionPage() {
                     Следующая миссия
                   </Text>
                   <Text variant="body-default-s" onBackground="neutral-weak">
-                    Стоимость: 100 СВЕТА • Убедитесь, что у вас достаточно света для продолжения
+                    • Убедитесь, что у вас достаточно света для продолжения
                   </Text>
                 </Column>
               </Card>

@@ -285,21 +285,14 @@ export default function MissionPage() {
             </Column>
 
             {/* Mission Image Placeholder */}
-            <div
-              style={{
-                width: "100%",
-                height: "300px",
-                borderRadius: "12px",
-                background: "linear-gradient(135deg, #00A9FF, #0080CC)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "4rem",
-                filter: "brightness(0.9)"
-              }}
-            >
+            <img
+              src="/images/mission_1_placeholder.png"
+              alt="Миссия 1: Погружение"
+              className="w-full h-[300px] rounded-[12px] object-cover brightness-90"
+              style={{ display: "block" }}
+            />
 
-            </div>
+
 
             {/* Mission Description */}
             <Card radius="l" padding="l" background="neutral-alpha-weak">

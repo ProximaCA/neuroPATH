@@ -72,6 +72,7 @@ interface UserContextType {
   
   // Notification state
   showReferralNotification: (amount: number, friendName: string, friendAvatar?: string, type?: 'received' | 'sent') => void;
+  updateUser: (userId: number, updates: Partial<kvStore.UserData>) => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -451,7 +452,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     return 10;
   };
 
-  const value: UserContextType & { updateUser: typeof updateUser } = {
+  const value: UserContextType = {
     user,
     telegramUser,
     isLoading: isLoading || tgLoading,
