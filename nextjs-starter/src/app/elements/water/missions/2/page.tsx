@@ -117,22 +117,34 @@ export default function MissionPage() {
   const completeMission = useCallback(async () => {
     setIsCompleting(true);
     triggerHaptic('notification', 'success');
+    
     try {
-      if (currentTimeSeconds >= totalDurationSeconds) {
-        await addMeditationSeconds(totalDurationSeconds);
-      }
+      // Сохраняем реальное время прослушанной сессии при завершении
+      console.log(`💾 [CLIENT] Mission 2 finished. Saving ${currentTimeSeconds} seconds (real time listened).`);
+      await addMeditationSeconds(currentTimeSeconds);
+
       setProgress(prev => ({ ...prev, isCompleted: true, isPlaying: false }));
+      
       if (user && updateUserProgress) {
         await updateUserProgress(missionId, {
           status: 'completed',
           completed_at: new Date().toISOString(),
           current_step: 6,
           progress_percentage: 100,
-          time_spent_seconds: 420, // 7 minutes
+          time_spent_seconds: currentTimeSeconds, // Реальное время прослушивания
         });
-        await completeUserMission(missionId);
+        
+        // Try to call the complete mission function
+        const result = await completeUserMission(missionId);
+        console.log('Mission 2 completion result:', result);
       }
+      
+      // Show success regardless of database result
+      console.log('Mission 2 completed successfully!');
+      
     } catch (error) {
+      console.error('Error completing mission 2:', error);
+      // Don't revert the UI state - mission is still "completed" locally
       triggerHaptic('notification', 'warning');
     } finally {
       setIsCompleting(false);
@@ -205,6 +217,36 @@ export default function MissionPage() {
     }
   }, [userProgress, artifactEarned]);
 
+  // Restore progress on page load
+  useEffect(() => {
+    if (userProgress && userProgress.status === 'in_progress') {
+      const savedTime = userProgress.time_spent_seconds || 0;
+      const savedStep = userProgress.current_step || 1;
+      const savedProgress = userProgress.progress_percentage || 0;
+      
+      console.log(`📥 [CLIENT] Restoring mission 2 progress: ${savedTime} seconds, step ${savedStep}, ${savedProgress}%`);
+      
+      setCurrentTimeSeconds(savedTime);
+      setProgress(prev => ({
+        ...prev,
+        currentStep: savedStep,
+        timeRemaining: Math.max(0, totalDurationSeconds - savedTime),
+        isPlaying: false, // Always start paused
+        isCompleted: false
+      }));
+      
+      // Set audio current time to match saved progress
+      if (audioRef.current && savedTime > 0) {
+        audioRef.current.currentTime = savedTime;
+      }
+      
+      // Don't show instructions if we have progress
+      if (savedTime > 0) {
+        setShowInstructions(false);
+      }
+    }
+  }, [userProgress, totalDurationSeconds]);
+
   if (showInstructions) {
     return (
       <Column fillWidth style={{ minHeight: "100vh" }}>
@@ -266,8 +308,7 @@ export default function MissionPage() {
               <Column gap="m">
                 <Heading variant="heading-strong-l">О миссии</Heading>
                 <Text variant="body-default-l" onBackground="neutral-weak">
-                  Вторая медитация стихии Воды. 
-                   в глубокое принятие себя и своих эмоций. Через дыхание, визуализацию и аффирмации ты научишься принимать себя полностью.
+                  Вторая медитация стихии Воды. Погружение в глубокое принятие себя и своих эмоций. Через дыхание, визуализацию и аффирмации ты научишься принимать себя полностью.
                 </Text>
                 <Column gap="s">
                   <Text variant="heading-strong-s">Что вас ждет:</Text>
@@ -475,10 +516,9 @@ export default function MissionPage() {
               </Heading>
               <Button
                 variant="secondary"
-                prefixIcon="refresh-cw"
                 onClick={restartMeditation}
               >
-                Начать заново
+                🔄 Начать заново
               </Button>
             </Row>
             <Text variant="body-default-l" onBackground="neutral-weak">
@@ -494,6 +534,15 @@ export default function MissionPage() {
               overflow: "hidden"
             }}
           >
+            <div
+              style={{
+                width: `${Math.max(0, Math.min(100, ((currentTimeSeconds / totalDurationSeconds) * 100)))}%`,
+                height: "100%",
+                backgroundColor: "#00A9FF",
+                borderRadius: "3px",
+                transition: "width 0.5s ease-in-out"
+              }}
+            />
           </div>
         </Column>
         <Card radius="l" padding="l" background="neutral-alpha-weak" align="center">

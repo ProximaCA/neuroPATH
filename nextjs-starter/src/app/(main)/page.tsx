@@ -20,7 +20,7 @@ import { Navigation } from "../../components/Navigation";
 import { useUser } from "../../lib/user-context-kv";
 import { triggerHaptic } from "../../lib/telegram";
 
-// Статические данные элементов (вместо загрузки из БД)
+// Статические данные элементов
 const ELEMENTS_DATA = [
   {
     id: "f2e4e168-e5a9-4a9c-b829-3e2c1a8a0b1a",
@@ -29,10 +29,10 @@ const ELEMENTS_DATA = [
     color_code: "#00A9FF",
     image_url: "/images/water-element.jpg",
     unlock_level: 1,
-    total_missions: 3,
+    total_missions: 4,
     created_at: new Date().toISOString(),
     emoji: "🌊",
-    isAvailable: true,
+    cost: 0, // Бесплатная
     missions: 3,
     progress: 0,
     color: "#00A9FF",
@@ -48,7 +48,7 @@ const ELEMENTS_DATA = [
     total_missions: 3,
     created_at: new Date().toISOString(),
     emoji: "🔥",
-    isAvailable: false,
+    cost: 200, // 500 света
     missions: 4,
     progress: 0,
     color: "#FF4500",
@@ -64,7 +64,7 @@ const ELEMENTS_DATA = [
     total_missions: 3,
     created_at: new Date().toISOString(),
     emoji: "🌪️",
-    isAvailable: false,
+    cost: 250, // 1000 света
     missions: 5,
     progress: 0,
     color: "#87CEEB",
@@ -80,7 +80,7 @@ const ELEMENTS_DATA = [
     total_missions: 3,
     created_at: new Date().toISOString(),
     emoji: "🌍", 
-    isAvailable: false,
+    cost: 300, // 1500 света
     missions: 4,
     progress: 0,
     color: "#8B4513",
@@ -98,7 +98,7 @@ interface Element {
   total_missions: number;
   created_at: string;
   emoji: string;
-  isAvailable: boolean;
+  cost: number;
   missions: number;
   progress: number;
   color: string;
@@ -106,17 +106,29 @@ interface Element {
 }
 
 export default function Home() {
-  const { user, missionProgress, isLoading } = useUser();
+  const { user, missionProgress, isLoading, refreshUserData } = useUser();
   const [elements, setElements] = useState<Element[]>(ELEMENTS_DATA);
   const [hoveredElement, setHoveredElement] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [unlockedElements, setUnlockedElements] = useState<string[]>(['f2e4e168-e5a9-4a9c-b829-3e2c1a8a0b1a']); // Вода всегда разблокирована
+
+  // Проверяем, разблокирован ли элемент
+  const isElementUnlocked = (elementId: string) => {
+    return unlockedElements.includes(elementId);
+  };
+
+  // Проверяем, может ли пользователь купить элемент
+  const canBuyElement = (element: Element) => {
+    return user && user.light_balance >= element.cost && !isElementUnlocked(element.id);
+  };
 
   // Вычисляем прогресс по воде на основе missionProgress
   const waterElementId = "f2e4e168-e5a9-4a9c-b829-3e2c1a8a0b1a";
   const waterMissionIds = [
     "d9e3f8a0-cb3a-4c9c-8f1a-6d5b7a8e9c0d", // 1
     "b2e3f8a0-cb3a-4c9c-8f1a-6d5b7a8e9c0e", // 2
-    // Добавь id третьей миссии, если появится
+    "c3e4f9a1-db4a-5c9d-9f2a-7d6b8a9e0c1f", // 3
+    "d4e5f0a2-ec5b-6d0e-0f3b-8e7c9b0f1d2g", // 4
   ];
   const waterMissionsCompleted = missionProgress
     ? missionProgress.filter(p => waterMissionIds.includes(p.mission_id) && p.status === 'completed').length
@@ -182,120 +194,133 @@ export default function Home() {
 
         {/* Elements Grid */}
         <Column gap="l" fillWidth align="center">
-          {elements.map((element) => (
-            <Card 
-              key={element.id}
-              maxWidth="m"
-              fillWidth
-              radius="l-4" 
-              direction="column" 
-              style={{
-                opacity: element.isAvailable ? 1 : 0.7,
-                transition: "all 0.3s ease",
-                transform: 'translateY(0)',
-              }}
-              className={element.isAvailable ? "hover:translate-y-[-2px]" : ""}
-            >
+          {elements.map((element) => {
+            const isUnlocked = isElementUnlocked(element.id);
+            const canBuy = canBuyElement(element);
             
-            {/* Header с именем и статусом */}
-            <Row fillWidth paddingX="20" paddingY="12" gap="8" vertical="center">
-              <Text variant="display-strong-s" style={{ fontSize: "1.5rem" }}>
-                {element.emoji}
-              </Text>
-              <Text variant="label-default-s" onBackground="neutral-medium">
-                {element.isAvailable ? 'Доступно' : 'Скоро'}
-              </Text>
-              {!element.isAvailable && (
-                <div style={{ 
-                  opacity: 0.5, 
-                  display: "flex", 
-                  alignItems: "center", 
-                  gap: "4px" 
-                }}>
-                  🔒
-                </div>
-              )}
-            </Row>
-
-            {/* Изображение элемента */}
-            <div
-              style={{
-                width: '100%',
-                height: '200px',
-                borderRadius: '12px',
-                backgroundImage: `url(${element.image})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                filter: element.isAvailable ? 'none' : 'grayscale(100%)',
-              }}
-            />
-
-            {/* Контент карточки */}
-            <Column fillWidth paddingX="20" paddingY="24" gap="12">
-            
-              <Heading 
-                variant="heading-strong-l" 
-                style={{ color: element.isAvailable ? element.color : "var(--neutral-weak)" }}
+            return (
+              <Card 
+                key={element.id}
+                maxWidth="m"
+                fillWidth
+                radius="l-4" 
+                direction="column" 
+                style={{
+                  opacity: isUnlocked ? 1 : 0.9,
+                  transition: "all 0.3s ease",
+                  transform: 'translateY(0)',
+                }}
+                className={isUnlocked ? "hover:translate-y-[-2px]" : ""}
               >
-                {element.name}
-      </Heading>
               
-      <Text
-        onBackground="neutral-weak"
-                variant="body-default-s"
-        wrap="balance"
-      >
-                {element.description}
-      </Text>
-            </Column>
-
-            {/* Статистика */}
-            <Line background="neutral-alpha-medium" />
-            <Row
-              paddingX="20" paddingY="12" gap="16" vertical="center"
-              textVariant="label-default-s" onBackground="neutral-medium"
-            >
-              <Row gap="4" align="center">
-                🎯
-                <Text>{element.missions} миссий</Text>
+              {/* Header с именем и статусом */}
+              <Row fillWidth paddingX="20" paddingY="12" gap="8" vertical="center">
+                <Text variant="display-strong-s" style={{ fontSize: "1.5rem" }}>
+                  {element.emoji}
+                </Text>
+                <Text variant="label-default-s" onBackground="neutral-medium">
+                  {isUnlocked ? 'Доступно' : element.cost === 0 ? 'Бесплатно' : `💰 ${element.cost} СВЕТА`}
+                </Text>
+                {!isUnlocked && element.cost > 0 && (
+                  <div style={{ 
+                    opacity: 0.5, 
+                    display: "flex", 
+                    alignItems: "center", 
+                    gap: "4px" 
+                  }}>
+                    🔒
+                  </div>
+                )}
               </Row>
-              <Row gap="4" align="center">
-                📊
-                <Text>{element.progress}% прогресс</Text>
-              </Row>
-            </Row>
 
-            {/* Кнопка действия */}
-            <Row fillWidth paddingX="20" paddingBottom="20">
-              {element.isAvailable ? (
-                <Link href={`/elements/${element.id}`} style={{ width: "100%" }}>
-      <Button
-                      fillWidth
-                      variant="primary"
-                      style={{ 
-                        backgroundColor: element.color,
-                        borderColor: element.color,
-                      }}
-        arrowIcon
-                      onClick={() => triggerHaptic('impact', 'medium')}
-                    >
-                      Начать путь
-                    </Button>
-                  </Link>
-              ) : (
-                <Button
-                  fillWidth
-                  variant="secondary"
-                  disabled
-                  onClick={() => triggerHaptic('notification', 'warning')}
+              {/* Изображение элемента */}
+              <div
+                style={{
+                  width: '100%',
+                  height: '200px',
+                  borderRadius: '12px',
+                  backgroundImage: `url(${element.image})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  filter: isUnlocked ? 'none' : 'grayscale(50%)',
+                }}
+              />
+
+              {/* Контент карточки */}
+              <Column fillWidth paddingX="20" paddingY="24" gap="12">
+              
+                <Heading 
+                  variant="heading-strong-l" 
+                  style={{ color: isUnlocked ? element.color : "var(--neutral-weak)" }}
                 >
-                  Скоро откроется
-      </Button>
-              )}
-            </Row>
+                  {element.name}
+        </Heading>
+                
+        <Text
+          onBackground="neutral-weak"
+                  variant="body-default-s"
+          wrap="balance"
+        >
+                  {element.description}
+        </Text>
+              </Column>
 
-          </Card>
-        ))}
+              {/* Статистика */}
+              <Line background="neutral-alpha-medium" />
+              <Row
+                paddingX="20" paddingY="12" gap="16" vertical="center"
+                textVariant="label-default-s" onBackground="neutral-medium"
+              >
+                <Row gap="4" align="center">
+                  🎯
+                  <Text>{element.missions} миссий</Text>
+                </Row>
+                <Row gap="4" align="center">
+                  📊
+                  <Text>{element.progress}% прогресс</Text>
+                </Row>
+              </Row>
+
+              {/* Кнопка действия */}
+              <Row fillWidth paddingX="20" paddingBottom="20">
+                {isUnlocked ? (
+                  <Link href={element.id === waterElementId ? `/elements/water/missions` : `/elements/${element.id}`} style={{ width: "100%" }}>
+        <Button
+                        fillWidth
+                        variant="primary"
+                        style={{ 
+                          backgroundColor: element.color,
+                          borderColor: element.color,
+                        }}
+          arrowIcon
+                        onClick={() => triggerHaptic('impact', 'medium')}
+                      >
+                        Начать путь
+                      </Button>
+                    </Link>
+                ) : (
+                  <Button
+                    fillWidth
+                    variant="secondary"
+                    disabled={!canBuy}
+                    onClick={() => {
+                      if (canBuy) {
+                        triggerHaptic('notification', 'warning');
+                        alert(`Эта стихия будет доступна в следующих обновлениях. Стоимость: ${element.cost} СВЕТА`);
+                      } else {
+                        triggerHaptic('notification', 'error');
+                        alert(`Недостаточно света. Нужно: ${element.cost}, есть: ${user?.light_balance || 0}`);
+                      }
+                    }}
+                  >
+                    {element.cost === 0 ? 'Начать' : canBuy ? `⚡ Открыть за ${element.cost} СВЕТА` : `🔒 Нужно ${element.cost} СВЕТА`}
+                  </Button>
+                )}
+              </Row>
+
+            </Card>
+          );
+        })}
       </Column>
 
       {/* Footer Info */}
