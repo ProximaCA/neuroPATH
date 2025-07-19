@@ -71,6 +71,13 @@ export default function WaterMissionsPage() {
   const { user, getMissionProgress, updateUserProgress, isLoading, updateUser, refreshUserData, unlockMission } = useUser();
   const [unlocking, setUnlocking] = useState<string | null>(null);
 
+  // Обновляем данные при загрузке страницы
+  useEffect(() => {
+    if (user) {
+      refreshUserData();
+    }
+  }, [user]);
+
   const hasMissionAccess = (mission: any) => {
     // Бесплатные миссии всегда доступны
     if (mission.cost === 0) return true;
@@ -126,9 +133,28 @@ export default function WaterMissionsPage() {
                     <Row gap="s" align="center">
                       <Badge>{mission.duration} мин</Badge>
                       {progress && (
-                        <Badge background="brand-alpha-weak">
-                          {progress.status === 'completed' ? '✓ Завершено' : `${progress.progress_percentage || 0}%`}
-                        </Badge>
+                        <>
+                          <Badge background="brand-alpha-weak">
+                            {progress.status === 'completed' ? '✓ Завершено' : `${progress.progress_percentage || 0}%`}
+                          </Badge>
+                          {progress.status === 'in_progress' && progress.progress_percentage > 0 && (
+                            <div style={{ 
+                              width: "100px", 
+                              height: "4px", 
+                              backgroundColor: "var(--neutral-alpha-weak)",
+                              borderRadius: "2px",
+                              overflow: "hidden"
+                            }}>
+                              <div style={{
+                                width: `${progress.progress_percentage}%`,
+                                height: "100%",
+                                backgroundColor: "#00A9FF",
+                                borderRadius: "2px",
+                                transition: "width 0.3s ease"
+                              }} />
+                            </div>
+                          )}
+                        </>
                       )}
                       {mission.cost > 0 && !hasAccess && (
                         <Badge background="warning-alpha-weak">💰 {mission.cost} СВЕТА</Badge>

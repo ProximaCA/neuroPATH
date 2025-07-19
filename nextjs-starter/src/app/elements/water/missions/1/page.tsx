@@ -531,9 +531,12 @@ export default function MissionPage() {
                         if (result.success) {
                           triggerHaptic('notification', 'success');
                           await refreshUserData();
+                          // Переход к миссии после успешной покупки
+                          window.location.href = '/elements/water/missions/2';
                         } else {
                           triggerHaptic('notification', 'error');
                           console.error('Ошибка разблокировки миссии:', result.error);
+                          alert(result.error || 'Не удалось разблокировать миссию');
                         }
                       }}
                     >

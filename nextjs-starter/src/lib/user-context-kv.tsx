@@ -444,8 +444,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const unlockMission = useCallback(async (missionId: string, cost: number): Promise<{ success: boolean; error?: string }> => {
     if (!user) return { success: false, error: 'Пользователь не найден' };
     
+    console.log(`🔓 [CLIENT] Unlocking mission ${missionId}. Cost: ${cost}, User balance: ${user.light_balance}`);
+    
     if (user.light_balance < cost) {
-      return { success: false, error: 'Недостаточно света' };
+      return { success: false, error: `Недостаточно света. Нужно: ${cost}, есть: ${user.light_balance}` };
     }
 
     try {
@@ -457,6 +459,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
       if (!updatedUser) {
         return { success: false, error: 'Ошибка при списании света' };
       }
+
+      console.log(`💰 [CLIENT] Light deducted. New balance: ${updatedUser.light_balance}`);
 
       // Разблокируем миссию
       await kvStore.addAvailableMission(user.id, missionId);

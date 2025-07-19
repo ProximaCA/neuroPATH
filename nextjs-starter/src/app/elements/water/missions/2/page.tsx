@@ -37,7 +37,9 @@ export default function MissionPage() {
     updateUserProgress,
     completeMission: completeUserMission,
     hasArtifact,
-    addMeditationSeconds
+    addMeditationSeconds,
+    unlockMission,
+    refreshUserData
   } = useUser();
   const missionId = 'b2e3f8a0-cb3a-4c9c-8f1a-6d5b7a8e9c0e'; // Second Water mission
 

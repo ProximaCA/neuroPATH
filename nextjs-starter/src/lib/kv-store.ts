@@ -349,6 +349,11 @@ export async function completeMission(userId: number, missionId: string): Promis
   artifact_earned?: { id: string; name: string };
 }> {
   try {
+    // Получаем текущий прогресс миссии чтобы узнать время медитации
+    const userProgress = await getUserProgress(userId);
+    const currentProgress = userProgress.find((p: MissionProgress) => p.mission_id === missionId);
+    const meditationMinutes = currentProgress ? Math.floor(currentProgress.time_spent_seconds / 60) : 0;
+    
     // Обновляем прогресс миссии
     await updateMissionProgress(userId, missionId, {
       status: 'completed',
@@ -361,6 +366,8 @@ export async function completeMission(userId: number, missionId: string): Promis
     if (!user) throw new Error('User not found');
     
     const lightEarned = 10;
+    
+    console.log(`💰 [SERVER] Completing mission ${missionId}. User balance: ${user.light_balance} + ${lightEarned} = ${user.light_balance + lightEarned}`);
     
     await updateUser(userId, {
       light_balance: user.light_balance + lightEarned,
@@ -379,7 +386,7 @@ export async function completeMission(userId: number, missionId: string): Promis
     
     return {
       light_earned: lightEarned,
-      meditation_minutes: 0,
+      meditation_minutes: meditationMinutes,
       artifact_earned: artifactEarned,
     };
   } catch (error) {
