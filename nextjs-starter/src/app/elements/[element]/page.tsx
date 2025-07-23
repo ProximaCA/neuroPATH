@@ -28,7 +28,7 @@ const WATER_MISSIONS = [
     artifact: {
       name: "Жемчужина Чуткости",
       image: "/images/artifacts/pearl.jpg",
-      description: "Символ глубокого понимания своих эмоций. Помогает распознавать тонкие оттенки чувств и принимать их без осуждения."
+      description: "Символ глубокого понимания эмоций и принятия себя."
     },
     order: 1,
     cost: 0, // Бесплатная
@@ -76,6 +76,7 @@ const WATER_MISSIONS = [
     cost: 200, // +50
   }
 ];
+
 
 interface Element {
   id: string;
@@ -359,36 +360,53 @@ export default function ElementPage() {
                       </Row>
 
                       {/* Artifact info */}
-                      <Card radius="m" padding="m" background="neutral-alpha-weak">
-                        <Row gap="m" align="center">
-                          <Text style={{ fontSize: "1.5rem" }}>⭐</Text>
-                          <Column gap="xs" fillWidth>
-                            <Text variant="label-default-s" style={{ color: element.color_code }}>
-                              Артефакт: {mission.artifact.name}
-                            </Text>
-                            <Text
-                              variant="body-default-s"
-                              onBackground="neutral-weak"
-                              style={{ lineHeight: "1.4" }}
-                            >
-                              {mission.artifact.description}
-                            </Text>
-                          </Column>
-                        </Row>
+                      <Card radius="m" padding="l" background="neutral-alpha-weak">
+                        <Column gap="m">
+                          <Row gap="m" align="center">
+                            <Text style={{ fontSize: "2rem" }}>⭐</Text>
+                            <Column gap="xs" fillWidth>
+                              <Text variant="heading-strong-s" style={{ color: element.color_code }}>
+                                {mission.artifact.name}
+                              </Text>
+                              <Text variant="label-default-xs" onBackground="neutral-medium">
+                                Артефакт за завершение миссии
+                              </Text>
+                            </Column>
+                          </Row>
+                          <Text
+                            variant="body-default-s"
+                            onBackground="neutral-weak"
+                            style={{ 
+                              lineHeight: "1.5",
+                              wordBreak: "break-word",
+                              whiteSpace: "pre-wrap"
+                            }}
+                          >
+                            {mission.artifact.description}
+                          </Text>
+                        </Column>
                       </Card>
 
                       {/* Detailed description */}
-                      <Text
-                        variant="body-default-s"
-                        onBackground="neutral-weak"
-                        style={{
-                          lineHeight: "1.6",
-                          fontStyle: "italic",
-                          opacity: hasAccess ? 1 : 0.7
-                        }}
-                      >
-                        {mission.detailedDescription}
-                      </Text>
+                      <Card radius="m" padding="m" background="brand-alpha-weak" border="brand-alpha-medium">
+                        <Column gap="xs">
+                          <Text variant="label-default-s" style={{ color: element.color_code }}>
+                            О медитации
+                          </Text>
+                          <Text
+                            variant="body-default-s"
+                            onBackground="neutral-weak"
+                            style={{
+                              lineHeight: "1.6",
+                              fontStyle: "italic",
+                              opacity: hasAccess ? 1 : 0.7,
+                              wordBreak: "break-word"
+                            }}
+                          >
+                            {mission.detailedDescription}
+                          </Text>
+                        </Column>
+                      </Card>
                     </Column>
                   </Card>
                 );
@@ -396,22 +414,6 @@ export default function ElementPage() {
             </Column>
           </Column>
 
-          {/* User balance info */}
-          {user && (
-            <Card radius="l" padding="l" background="brand-alpha-weak" border="brand-alpha-medium">
-              <Row gap="m" align="center" horizontal="center">
-                <Text style={{ fontSize: "2rem" }}>✨</Text>
-                <Column gap="xs" align="center">
-                  <Text variant="heading-strong-m" style={{ color: element.color_code }}>
-                    {user.light_balance} СВЕТА
-                  </Text>
-                  <Text variant="body-default-s" onBackground="neutral-weak">
-                    Твой текущий баланс света
-                  </Text>
-                </Column>
-              </Row>
-            </Card>
-          )}
 
         </Column>
       </Column>

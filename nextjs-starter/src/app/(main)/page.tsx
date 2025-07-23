@@ -284,7 +284,7 @@ export default function Home() {
               {/* Кнопка действия */}
               <Row fillWidth paddingX="20" paddingBottom="20">
                 {isUnlocked ? (
-                  <Link href={element.id === waterElementId ? `/elements/water/missions` : `/elements/${element.id}`} style={{ width: "100%" }}>
+                  <Link href={`/elements/water`} style={{ width: "100%" }}>
         <Button
                         fillWidth
                         variant="primary"
