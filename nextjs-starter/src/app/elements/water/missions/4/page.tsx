@@ -37,7 +37,7 @@ export default function Mission4Page() {
       {/* Navigation */}
       <Navigation 
         showBackButton 
-        backHref="/elements/water/missions" 
+                  backHref="/elements/water" 
         backText="К миссиям"
         title="Глубина"
       />
@@ -63,7 +63,7 @@ export default function Mission4Page() {
             </Column>
           </Card>
 
-          <Link href="/elements/water/missions">
+          <Link href="/elements/water">
             <Button variant="secondary" arrowIcon>
               Вернуться к миссиям
             </Button>

@@ -42,7 +42,7 @@ const WATER_MISSIONS = [
     artifact: {
       name: "Кристалл Принятия",
       image: "/images/artifacts/crystal.jpg",
-      description: "Кристаллизованная эмпатия. Открывает способность чувствовать связь с другими через собственную уязвимость."
+      description: "Кристалл эмпатии. Способность чувствовать связь с другими через принятие."
     },
     order: 2,
     cost: 100, // +100
@@ -56,7 +56,7 @@ const WATER_MISSIONS = [
     artifact: {
       name: "Лунный Камень",
       image: "/images/artifacts/moonstone.jpg",
-      description: "Прозрачный камень внутренней мудрости. Дарует силу принимать жизнь такой, какая она есть, находя покой в потоке перемен."
+      description: "Камень внутренней мудрости. Дарует силу принимать жизнь и находить покой."
     },
     order: 3,
     cost: 150, // +50
@@ -70,7 +70,7 @@ const WATER_MISSIONS = [
     artifact: {
       name: "Морская Звезда",
       image: "/images/artifacts/starfish.jpg",
-      description: "Символ регенерации и восстановления. Помогает исцелить душевные раны и обрести целостность."
+      description: "Символ регенерации. Помогает исцелить душевные раны и обрести целостность."
     },
     order: 4,
     cost: 200, // +50
@@ -360,11 +360,11 @@ export default function ElementPage() {
                       </Row>
 
                       {/* Artifact info */}
-                      <Card radius="m" padding="l" background="neutral-alpha-weak">
-                        <Column gap="m">
-                          <Row gap="m" align="center">
-                            <Text style={{ fontSize: "2rem" }}>⭐</Text>
-                            <Column gap="xs" fillWidth>
+                      <Card radius="m" padding="m" background="neutral-alpha-weak" fillWidth>
+                        <Column gap="s">
+                          <Row gap="s" align="start">
+                            <Text style={{ fontSize: "1.5rem", flexShrink: 0 }}>⭐</Text>
+                            <Column gap="xs" fillWidth style={{ minWidth: 0 }}>
                               <Text variant="heading-strong-s" style={{ color: element.color_code }}>
                                 {mission.artifact.name}
                               </Text>
@@ -374,12 +374,13 @@ export default function ElementPage() {
                             </Column>
                           </Row>
                           <Text
-                            variant="body-default-s"
+                            variant="body-default-xs"
                             onBackground="neutral-weak"
                             style={{ 
-                              lineHeight: "1.5",
+                              lineHeight: "1.4",
                               wordBreak: "break-word",
-                              whiteSpace: "pre-wrap"
+                              hyphens: "auto",
+                              overflow: "hidden"
                             }}
                           >
                             {mission.artifact.description}
@@ -388,19 +389,21 @@ export default function ElementPage() {
                       </Card>
 
                       {/* Detailed description */}
-                      <Card radius="m" padding="m" background="brand-alpha-weak" border="brand-alpha-medium">
-                        <Column gap="xs">
+                      <Card radius="m" padding="m" background="brand-alpha-weak" border="brand-alpha-medium" fillWidth>
+                        <Column gap="s">
                           <Text variant="label-default-s" style={{ color: element.color_code }}>
                             О медитации
                           </Text>
                           <Text
-                            variant="body-default-s"
+                            variant="body-default-xs"
                             onBackground="neutral-weak"
                             style={{
-                              lineHeight: "1.6",
+                              lineHeight: "1.5",
                               fontStyle: "italic",
                               opacity: hasAccess ? 1 : 0.7,
-                              wordBreak: "break-word"
+                              wordBreak: "break-word",
+                              hyphens: "auto",
+                              overflow: "hidden"
                             }}
                           >
                             {mission.detailedDescription}

@@ -271,7 +271,7 @@ export default function MissionPage() {
         />
         <Navigation
           showBackButton
-          backHref="/elements/water/missions"
+          backHref="/elements/water"
           backText="К миссиям"
           title="Глубина принятия"
         />
@@ -389,7 +389,7 @@ export default function MissionPage() {
         />
         <Navigation
           showBackButton
-          backHref="/elements/water/missions"
+          backHref="/elements/water"
           backText="К миссиям"
         />
         <Column fillWidth center padding="l" gap="xl" style={{ position: "relative", zIndex: 1 }}>
@@ -450,7 +450,7 @@ export default function MissionPage() {
               </Card>
             </Column>
             <Column gap="m" fillWidth>
-              <Link href="/elements/water/missions">
+              <Link href="/elements/water">
                 <Button variant="primary" fillWidth arrowIcon>
                   К списку миссий
                 </Button>
@@ -490,7 +490,7 @@ export default function MissionPage() {
       />
       <Navigation
         showBackButton
-        backHref="/elements/water/missions"
+        backHref="/elements/water"
         backText="Выйти"
         title={`Шаг ${progress.currentStep} из ${progress.totalSteps}`}
       />
