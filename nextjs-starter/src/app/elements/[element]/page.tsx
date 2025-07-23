@@ -23,7 +23,7 @@ const WATER_MISSIONS = [
     id: "d9e3f8a0-cb3a-4c9c-8f1a-6d5b7a8e9c0d",
     title: "Погружение",
     description: "Первая медитация. Вход в стихию воды.",
-    detailedDescription: "Первый контакт со стихией Воды. Мягкое погружение в медитативное состояние через дыхание и визуализацию. Поможет почувствовать внутренний поток и научиться принимать свои эмоции без сопротивления.",
+    detailedDescription: "Мягкое погружение в медитативное состояние через дыхание и визуализацию.",
     duration: 5,
     artifact: {
       name: "Жемчужина Чуткости",
@@ -37,7 +37,7 @@ const WATER_MISSIONS = [
     id: "b2e3f8a0-cb3a-4c9c-8f1a-6d5b7a8e9c0e",
     title: "Растворение",
     description: "Вторая медитация. Погружение в принятие себя.",
-    detailedDescription: "Освобождение от страхов и тревог через технику растворения. Работа с дыханием 4-7-8 и образными представлениями. Учимся отпускать то, что нас сковывает.",
+    detailedDescription: "Освобождение от страхов через технику растворения и дыхание 4-7-8.",
     duration: 7,
     artifact: {
       name: "Кристалл Принятия",
@@ -51,7 +51,7 @@ const WATER_MISSIONS = [
     id: "c3e4f9a1-db4a-5c9d-9f2a-7d6b8a9e0c1f",
     title: "Течение",
     description: "Третья медитация. Движение с потоком жизни.",
-    detailedDescription: "Глубокая практика принятия жизни такой, какая она есть. Работа с обидами и привязанностями. Обретение внутреннего покоя через поток осознанности.",
+    detailedDescription: "Практика принятия жизни. Работа с обидами и обретение покоя.",
     duration: 10,
     artifact: {
       name: "Лунный Камень",
@@ -65,7 +65,7 @@ const WATER_MISSIONS = [
     id: "d4e5f0a2-ec5b-6d0e-0f3b-8e7c9b0f1d2g",
     title: "Глубина",
     description: "Четвертая медитация. Погружение в глубины подсознания.",
-    detailedDescription: "Самая глубокая медитация стихии Воды. Работа с подсознательными блоками и травмами. Исцеление через принятие и трансформацию внутренних конфликтов.",
+    detailedDescription: "Глубокая медитация. Работа с подсознательными блоками и исцеление травм.",
     duration: 12,
     artifact: {
       name: "Морская Звезда",
@@ -359,19 +359,16 @@ export default function ElementPage() {
                         </Column>
                       </Row>
 
-                      {/* Artifact info */}
-                      <Card radius="m" padding="m" background="neutral-alpha-weak" fillWidth>
-                        <Column gap="s">
+                                            {/* Artifact info */}
+                      <Card radius="m" padding="s" background="neutral-alpha-weak" fillWidth>
+                        <Column gap="xs" style={{ minWidth: 0 }}>
                           <Row gap="s" align="start">
-                            <Text style={{ fontSize: "1.5rem", flexShrink: 0 }}>⭐</Text>
+                            <Text style={{ fontSize: "1.25rem", flexShrink: 0 }}>⭐</Text>
                             <Column gap="xs" fillWidth style={{ minWidth: 0 }}>
-                              <Text variant="heading-strong-s" style={{ color: element.color_code }}>
+                              <Text variant="heading-strong-xs" style={{ color: element.color_code }}>
                                 {mission.artifact.name}
                               </Text>
-                              <Text variant="label-default-xs" onBackground="neutral-medium">
-                                Артефакт за завершение миссии
-                              </Text>
-                            </Column>
+                              </Column>
                           </Row>
                           <Text
                             variant="body-default-xs"
@@ -380,7 +377,8 @@ export default function ElementPage() {
                               lineHeight: "1.4",
                               wordBreak: "break-word",
                               hyphens: "auto",
-                              overflow: "hidden"
+                              overflow: "hidden",
+                              maxWidth: "100%"
                             }}
                           >
                             {mission.artifact.description}
@@ -389,21 +387,22 @@ export default function ElementPage() {
                       </Card>
 
                       {/* Detailed description */}
-                      <Card radius="m" padding="m" background="brand-alpha-weak" border="brand-alpha-medium" fillWidth>
-                        <Column gap="s">
-                          <Text variant="label-default-s" style={{ color: element.color_code }}>
+                      <Card radius="m" padding="s" background="brand-alpha-weak" border="brand-alpha-medium" fillWidth>
+                        <Column gap="xs" style={{ minWidth: 0 }}>
+                          <Text variant="label-default-xs" style={{ color: element.color_code }}>
                             О медитации
                           </Text>
                           <Text
                             variant="body-default-xs"
                             onBackground="neutral-weak"
                             style={{
-                              lineHeight: "1.5",
+                              lineHeight: "1.4",
                               fontStyle: "italic",
                               opacity: hasAccess ? 1 : 0.7,
                               wordBreak: "break-word",
                               hyphens: "auto",
-                              overflow: "hidden"
+                              overflow: "hidden",
+                              maxWidth: "100%"
                             }}
                           >
                             {mission.detailedDescription}
