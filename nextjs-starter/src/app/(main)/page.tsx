@@ -331,30 +331,6 @@ export default function Home() {
         <Text variant="code-default-xs" onBackground="neutral-weak" align="center">
           {loading ? 'Загрузка данных...' : 'Остальные стихии откроются по мере прохождения'}
         </Text>
-        {user && (
-          <Row gap="8" align="center" marginTop="s">
-            ✨
-            <Text variant="code-default-xs" onBackground="accent-medium">
-              СВЕТ: {user.light_balance} | Уровень: {user.level}
-            </Text>
-          </Row>
-        )}
-        {user && (
-          <Row gap="s" align="center">
-            🎯
-            <Text variant="code-default-xs" onBackground="neutral-medium">
-              {user.total_missions_completed} миссий
-            </Text>
-          </Row>
-        )}
-        {user && (
-          <Row gap="s" align="center">
-            📊
-            <Text variant="code-default-xs" onBackground="neutral-medium">
-              {user.total_meditation_minutes} мин
-            </Text>
-          </Row>
-        )}
       </Column>
 
     </Column>

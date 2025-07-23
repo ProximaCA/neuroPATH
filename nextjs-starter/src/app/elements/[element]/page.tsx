@@ -35,7 +35,7 @@ const WATER_MISSIONS = [
   },
   {
     id: "b2e3f8a0-cb3a-4c9c-8f1a-6d5b7a8e9c0e",
-    title: "Растворение",
+    title: "Глубина принятия",
     description: "Вторая медитация. Погружение в принятие себя.",
     detailedDescription: "Освобождение от страхов через технику растворения и дыхание 4-7-8.",
     duration: 7,
@@ -45,7 +45,7 @@ const WATER_MISSIONS = [
       description: "Кристалл эмпатии. Способность чувствовать связь с другими через принятие."
     },
     order: 2,
-    cost: 100, // +100
+    cost: 50, // +100
   },
   {
     id: "c3e4f9a1-db4a-5c9d-9f2a-7d6b8a9e0c1f",
@@ -59,7 +59,7 @@ const WATER_MISSIONS = [
       description: "Камень внутренней мудрости. Дарует силу принимать жизнь и находить покой."
     },
     order: 3,
-    cost: 150, // +50
+    cost: 50, // +50
   },
   {
     id: "d4e5f0a2-ec5b-6d0e-0f3b-8e7c9b0f1d2g",
@@ -73,7 +73,7 @@ const WATER_MISSIONS = [
       description: "Символ регенерации. Помогает исцелить душевные раны и обрести целостность."
     },
     order: 4,
-    cost: 200, // +50
+    cost: 50, // +50
   }
 ];
 
@@ -294,9 +294,7 @@ export default function ElementPage() {
                           <Row gap="s" align="center">
                             <Heading variant="heading-strong-m">{mission.title}</Heading>
                             <Badge>{mission.duration} мин</Badge>
-                            {mission.cost > 0 && !hasAccess && (
-                              <Badge background="warning-alpha-weak">💰 {mission.cost} СВЕТА</Badge>
-                            )}
+                        
                           </Row>
                           <Text variant="body-default-s" onBackground="neutral-weak">
                             {mission.description}
