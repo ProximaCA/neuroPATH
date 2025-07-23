@@ -290,20 +290,7 @@ export default function MissionPage() {
                 </Column>
               </Row>
             </Column>
-            <div
-              style={{
-                width: "100%",
-                height: "300px",
-                borderRadius: "12px",
-                background: "linear-gradient(135deg, #00A9FF, #0080CC)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "4rem",
-                filter: "brightness(0.9)"
-              }}
-            >
-            </div>
+          
             <Card radius="l" padding="l" background="neutral-alpha-weak">
               <Column gap="m">
                 <Heading variant="heading-strong-l">О миссии</Heading>
